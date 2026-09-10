@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --patient-bg: #fbf4e9;
+    --tap-min: 120px;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+    margin: 0;
+    min-height: 100dvh;
+  }
+
+  /* Focus is always visible — caregivers and patients may both use keyboards. */
+  :focus-visible {
+    outline: 3px solid theme('colors.glow.600');
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Respect reduced motion everywhere: Jugnu must never be visually agitating. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-paper shadow-card;
+  }
+
+  .card-quiet {
+    @apply rounded-card border border-line/70 bg-paper/70;
+  }
+
+  .card-pad {
+    @apply p-5 sm:p-6;
+  }
+
+  .label-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint;
+  }
+
+  .heading-card {
+    @apply font-display text-xl text-ink sm:text-[1.375rem];
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-pill px-5 py-3 text-base font-semibold
+      transition duration-200 ease-calm disabled:cursor-not-allowed disabled:opacity-45;
+    min-height: 48px;
+  }
+
+  .btn-primary {
+    @apply btn bg-glow-500 text-white shadow-glow hover:bg-glow-600 active:scale-[0.99];
+  }
+
+  .btn-secondary {
+    @apply btn border border-line bg-paper text-ink hover:border-glow-300 hover:bg-glow-50;
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-soft hover:bg-sand;
+  }
+
+  .btn-quiet-danger {
+    @apply btn border border-clay-100 bg-clay-100/50 text-clay-700 hover:bg-clay-100;
+  }
+
+  .input {
+    @apply w-full rounded-2xl border border-line bg-paper px-4 py-3 text-base text-ink
+      placeholder:text-ink-faint focus:border-glow-400 focus:outline-none focus:ring-4 focus:ring-glow-100;
+    min-height: 48px;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold;
+  }
+
+  /* ---- Patient surface: sparse, warm, very large targets ---- */
+  .patient-screen {
+    background: radial-gradient(120% 90% at 50% 0%, #fffaf1 0%, var(--patient-bg) 58%, #f6ead9 100%);
+    min-height: 100dvh;
+  }
+
+  .patient-prompt {
+    @apply text-center font-display leading-snug text-ink;
+    font-size: clamp(1.75rem, 4.4vw, 2.75rem);
+  }
+
+  .patient-tile {
+    @apply relative flex flex-col items-center justify-center gap-2 rounded-[24px] border-2 border-line bg-white
+      p-3 text-center transition duration-300 ease-calm;
+    min-height: var(--tap-min);
+    box-shadow: 0 3px 14px 0 rgba(43, 38, 34, 0.05), 0 1px 3px 0 rgba(43, 38, 34, 0.04);
+  }
+
+  .patient-tile:not(:disabled):active {
+    @apply scale-[0.97] border-glow-400;
+    transition-duration: 80ms;
+  }
+
+  .patient-tile:not(:disabled):hover {
+    @apply border-glow-300;
+    box-shadow: 0 6px 20px 0 rgba(43, 38, 34, 0.09), 0 2px 5px 0 rgba(43, 38, 34, 0.05);
+  }
+
+  .patient-tile-name {
+    @apply font-display leading-tight text-ink;
+    font-size: clamp(1.18rem, 3.2vw, 1.65rem);
+  }
+
+  /* Compact variant — still elder-readable, just fits 2-col grid */
+  .patient-tile-compact .patient-tile-name,
+  .patient-tile-compact span.patient-tile-name {
+    font-size: clamp(0.92rem, 2.6vw, 1.18rem);
+  }
+
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    @apply sr-only;
+  }
+
+  /* When it is deliberately focused it becomes a real, visible control. */
+  .sr-only-focusable:focus {
+    @apply fixed left-3 top-3 z-50 rounded-pill border border-line bg-paper px-4 py-2 text-sm font-semibold text-ink shadow-card;
+  }
+}
+
+@layer utilities {
+  .no-tap-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
