@@ -83,9 +83,10 @@ Jugnu/
 | Layer | Role | Access |
 |-------|------|--------|
 | 0 | **Patient** | One activity at a time. Voice first. No navigation. |
-| 1 | **Primary Caregiver** | Full dashboard, settings, trends, memories, reminders |
-| 2 | **Trusted Helper** | Assigned reminders and shared memories only |
+| 1 | **Primary Caregiver** | Full dashboard, settings, trends, memories, reminders. |
+| 2 | **Trusted Helper** |Full day-to-day care access, including dashboard, trends, memories, and reminders. Cannot edit personal information or manage access. |
 | 3 | **Family Member** | Contribution-only home. Share memories. No analytics. |
+| 4 | **Health Worker** | Can add and manage patients, view their progress, priority signals, and relevant care insights. |
 
 Permissions are **structural, not defensive** — `capabilities.ts` decides what a layer may do; screens hide or disable what is not available. A helper never taps something and then gets told off.
 
@@ -325,6 +326,6 @@ MIT
 
 **Jugnu** — Lighting Memories. Strengthening Bonds.
 
-Built with ❤️ by Team vanguard.
+Built with ❤️ by Team Vanguard.
 
 </div>
