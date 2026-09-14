@@ -168,7 +168,6 @@ This starts:
 - `GET /api/health-workers/me` - My profile
 - `GET /api/health-workers/patients` - List patients
 - `GET /api/health-workers/priority-list` - Priority list
-- `GET /api/health-workers/visit-plan` - Weekly visit plan
 
 ### Sync
 - `POST /api/sync` - Sync offline events

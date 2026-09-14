@@ -159,8 +159,8 @@ export function MemoryComposerScreen() {
         photoUrl,
         voiceNote,
         createdByUserId: currentUser.id,
-        status: can.approveContributions ? 'approved' : 'pending',
-        usableInActivities: can.approveContributions ? useInActivities : false,
+        status: currentUser.layer === 1 ? 'approved' : 'pending',
+        usableInActivities: currentUser.layer === 1 ? useInActivities : false,
       },
     })
     api.addMemory({
@@ -171,8 +171,8 @@ export function MemoryComposerScreen() {
       photoUrl,
       voiceNote,
       createdByUserId: currentUser.id,
-      status: can.approveContributions ? 'approved' : 'pending',
-      usableInActivities: can.approveContributions ? useInActivities : false,
+      status: currentUser.layer === 1 ? 'approved' : 'pending',
+      usableInActivities: currentUser.layer === 1 ? useInActivities : false,
     })
     setSaved(true)
   }
