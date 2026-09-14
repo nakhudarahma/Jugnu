@@ -44,7 +44,7 @@ What the patient sees is one calm activity at a time — voice first, no menus, 
 
 ### Health Worker Portal
 - Separate entry for ASHA/ANM/CHO workers
-- Patient list, priority list, weekly visit plan
+- Patient list, priority list
 - Individual patient view with session history
 
 ### Multi-Language Support
@@ -325,6 +325,6 @@ MIT
 
 **Jugnu** — Lighting Memories. Strengthening Bonds.
 
-Built with care for families caring for their elders.
+Built with ❤️ by Team vanguard.
 
 </div>
