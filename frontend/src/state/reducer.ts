@@ -4,7 +4,7 @@ import { uid } from '@/lib/id'
 import { seedState } from '@/data/seed'
 
 export type Action =
-  | { type: 'signIn'; userId: string }
+  | { type: 'signIn'; userId: string; user?: Partial<AppUser> }
   | { type: 'signOut' }
   | { type: 'requestMoodCheckIn' }
   | { type: 'dismissMoodCheckIn' }
@@ -24,11 +24,31 @@ export type Action =
   | { type: 'invite'; name: string; contact: string; layer: 2 | 3 }
   | { type: 'revokeInvite'; id: string }
   | { type: 'resetDemo' }
+  | { type: 'createNewSpace'; userId: string; user?: Partial<AppUser> }
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
-    case 'signIn':
-      return { ...state, currentUserId: action.userId }
+    case 'signIn': {
+      let users = [...state.users]
+      const existing = users.find((u) => u.id === action.userId)
+      if (action.user) {
+        if (existing) {
+          users = users.map((u) => (u.id === action.userId ? { ...u, ...action.user } : u))
+        } else {
+          const newUser: AppUser = {
+            id: action.userId,
+            name: action.user.name || 'Caregiver',
+            relationship: action.user.relationship || 'Primary Caregiver',
+            layer: action.user.layer ?? 1,
+            portraitTone: 'amber',
+            canSeeTrends: true,
+            ...action.user,
+          }
+          users.push(newUser)
+        }
+      }
+      return { ...state, users, currentUserId: action.userId }
+    }
 
     case 'signOut':
       return { ...state, currentUserId: null, pendingMoodCheckIn: false }
@@ -100,8 +120,8 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'recordSession': {
       const date = today()
       const record: SessionRecord = { ...action.session, id: uid('s'), date }
-      const withoutToday = state.sessions.filter((s) => s.date !== date)
-      return { ...state, sessions: [...withoutToday, record] }
+      const withoutCurrent = state.sessions.filter((s) => s.id !== record.id)
+      return { ...state, sessions: [...withoutCurrent, record] }
     }
 
     case 'invite':
@@ -118,6 +138,44 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'resetDemo':
       return { ...seedState, currentUserId: state.currentUserId }
+
+    case 'createNewSpace': {
+      const newUser: AppUser = {
+        id: action.userId,
+        name: action.user?.name || 'Caregiver',
+        relationship: action.user?.relationship || 'Primary Caregiver',
+        layer: action.user?.layer ?? 1,
+        portraitTone: 'amber',
+        canSeeTrends: true,
+        ...action.user,
+      }
+      return {
+        ...state,
+        patient: {
+          id: uid('p'),
+          name: 'My Loved One',
+          displayName: `${newUser.name}’s Care`,
+          age: 70,
+          relationshipToCaregiver: 'Family',
+          region: 'India',
+          language: 'hi',
+          personalizationLevel: 1,
+          morningRoutine: ['wake', 'brush', 'tea', 'medicine', 'breakfast'],
+          voiceEnabled: true,
+          speechRate: 0.85,
+          portraitTone: 'amber',
+        },
+        users: [newUser],
+        currentUserId: action.userId,
+        people: [],
+        memories: [],
+        reminders: [],
+        sessions: [],
+        moods: [],
+        invites: [],
+        pendingMoodCheckIn: false,
+      }
+    }
 
     default:
       return state

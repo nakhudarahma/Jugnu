@@ -176,9 +176,10 @@ function patternRecallRound(args: BuildArgs, pairIndex: number): ActivityStep {
   ]
 
   const answer: ChoiceOption = { id: objB.slug, label: labelB, art: objB.art, correct: true }
-  const distractors = pick(
+  const distractorA: ChoiceOption = { id: objA.slug, label: labelA, art: objA.art, correct: false }
+  const otherDistractors = pick(
     objects.filter((o) => o.slug !== objA.slug && o.slug !== objB.slug),
-    2,
+    1,
   ).map((d) => ({
     id: d.slug,
     label: wordFor(d.names, lang, d.slug),
@@ -191,7 +192,7 @@ function patternRecallRound(args: BuildArgs, pairIndex: number): ActivityStep {
     kind: 'patternRecall',
     domain: 'attention',
     prompt: t(lang, 'patternNext'),
-    options: shuffle([answer, ...distractors]),
+    options: shuffle([answer, distractorA, ...otherDistractors]),
     answerLabel: labelB,
     answerIsPerson: false,
     wordTiles: false,

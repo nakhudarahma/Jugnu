@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { CaregiverHeader } from '@/components/caregiver/CaregiverHeader'
 import { ChangeSignal } from '@/components/caregiver/ChangeSignal'
 import { CognitiveTrends } from '@/components/caregiver/CognitiveTrends'
+import { SessionPaceAnalysis } from '@/components/caregiver/SessionPaceAnalysis'
 import { CompleteProfilePrompt } from '@/components/caregiver/CompleteProfilePrompt'
 import { DailyActivityCard } from '@/components/caregiver/DailyActivityCard'
 import { MoodCheckIn } from '@/components/caregiver/MoodCheckIn'
@@ -81,7 +82,12 @@ export function CaregiverDashboard() {
 
         <ReminderStatus reminders={visibleReminders} onOpen={() => navigate('/reminders')} />
 
-        {can.viewTrends && <CognitiveTrends trends={allTrends(state.sessions)} onOpen={() => navigate('/trends')} />}
+        {can.viewTrends && (
+          <>
+            <CognitiveTrends trends={allTrends(state.sessions)} onOpen={() => navigate('/trends')} />
+            <SessionPaceAnalysis sessions={state.sessions} onOpen={() => navigate('/trends')} />
+          </>
+        )}
 
         {can.viewChangeSignal && (
           <ChangeSignal signal={changeSignal(state.sessions)} onReview={() => navigate('/trends')} />

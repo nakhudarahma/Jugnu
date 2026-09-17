@@ -1,15 +1,15 @@
 # Dependencies
 node_modules/
-Frontend/node_modules/
+frontend/node_modules/
 
 # Build output
 dist/
-Frontend/dist/
+frontend/dist/
 dist-ssr/
 
 # Vite / Cache
 .vite/
-Frontend/.vite/
+frontend/.vite/
 
 # Environment variables
 .env

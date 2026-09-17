@@ -76,6 +76,9 @@ export function useSessionEngine(): SessionEngine {
   const timer = useRef<number | null>(null)
   const results = useRef<{ domain: CognitiveDomain; correct: boolean }[]>([])
   const recorded = useRef(false)
+  const sessionStartRef = useRef<number>(Date.now())
+  const stepStartRef = useRef<number>(Date.now())
+  const stepTimesRef = useRef<number[]>([])
 
   const step = confirmStep ?? plan[index] ?? null
 
@@ -113,6 +116,19 @@ export function useSessionEngine(): SessionEngine {
           ? Math.round(rows.reduce((sum, r) => sum + (r.correct ? 92 : 58), 0) / rows.length)
           : (previous?.domainScores[domain] ?? 65)
       })
+
+      const totalDurationSeconds = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 1000))
+      const times = stepTimesRef.current
+      const avgResponseTimeMs = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 3800
+      const hesitationCount = times.filter((t) => t > 10000).length
+      let fatigueRatio = 1.0
+      if (times.length >= 2) {
+        const half = Math.floor(times.length / 2)
+        const firstHalf = times.slice(0, half).reduce((a, b) => a + b, 0) / half
+        const secondHalf = times.slice(half).reduce((a, b) => a + b, 0) / (times.length - half)
+        fatigueRatio = firstHalf > 0 ? Number((secondHalf / firstHalf).toFixed(2)) : 1.0
+      }
+
       dispatch({
         type: 'recordSession',
         session: {
@@ -121,10 +137,16 @@ export function useSessionEngine(): SessionEngine {
           domainScores,
           activityCount: countGames(plan),
           gentleCorrections: results.current.filter((r) => !r.correct).length,
+          timeMetrics: {
+            totalDurationSeconds,
+            avgResponseTimeMs,
+            hesitationCount,
+            fatigueRatio,
+          },
         },
       })
     },
-    [currentUser?.id, dispatch, plan.length, state.sessions],
+    [currentUser?.id, dispatch, plan, state.sessions],
   )
 
   const finish = useCallback(() => {
@@ -150,6 +172,7 @@ export function useSessionEngine(): SessionEngine {
       setFeedback(null)
       setPhase('activity')
       setPromptText(next.prompt)
+      stepStartRef.current = Date.now()
       p.sayText(next.prompt)
     },
     [p],
@@ -202,6 +225,9 @@ export function useSessionEngine(): SessionEngine {
       if (phase !== 'activity' || !step) return
       const option = step.options.find((o) => o.id === optionId)
       if (!option) return
+
+      const stepDuration = Math.max(200, Date.now() - stepStartRef.current)
+      stepTimesRef.current.push(stepDuration)
 
       if (step.orderedIds) {
         const expected = step.orderedIds[placedIds.length]

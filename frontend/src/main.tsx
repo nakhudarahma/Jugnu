@@ -5,11 +5,19 @@ import { AppProvider } from '@/state/AppContext'
 import { flushQueue } from '@/lib/api'
 import './index.css'
 
-// Register service worker for offline caching
+// Service worker: only run in production to prevent stale React chunk caching in dev mode
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => { /* sw registration failed */ })
-  })
+  if (import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister()
+      }
+    })
+  } else {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => { /* sw registration failed */ })
+    })
+  }
 }
 
 // Listen for sync messages from service worker

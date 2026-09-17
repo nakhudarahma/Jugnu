@@ -30,7 +30,7 @@ jobs:
       DATABASE_URL: postgresql://jugnu:jugnu@localhost:5432/jugnu
       DIRECT_URL: postgresql://jugnu:jugnu@localhost:5432/jugnu
       JWT_SECRET: ci-placeholder-jwt-secret
-      JWT_REFRESH_SECRET: ci-placeholder-jwt-refresh-secret  # ← ADD THIS LINE
+      JWT_REFRESH_SECRET: ci-placeholder-jwt-refresh-secret
       ENCRYPTION_KEY: ci-placeholder-encryption-key
       NODE_ENV: test
       CI: "true"

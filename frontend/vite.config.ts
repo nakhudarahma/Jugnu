@@ -9,12 +9,20 @@ export default defineConfig({
     alias: {
       '@': '/src',
     },
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
   server: {
     port: 5173,
     // Run `npm run dev -- --host` to reach the dev server from a tablet on the same wifi.
     proxy: {
       '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/health': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       },

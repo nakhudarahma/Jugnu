@@ -87,7 +87,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     checkBackend().then(setBackendAvailable)
     // Check queue length periodically
     const interval = setInterval(() => {
-      import('@/lib/syncQueue').then(({ queueLength: len }) => setQueueLength(len))
+      import('@/lib/syncQueue').then(({ queueLength: len }) => setQueueLength(len()))
     }, 5000)
     return () => clearInterval(interval)
   }, [])
@@ -111,15 +111,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const res = await authApi.login(identifier, password)
       if (res) {
         setTokens(res.accessToken, res.refreshToken)
-        dispatch({ type: 'signIn', userId: res.user.id })
+        const isWorker = res.user.role === 'HEALTH_WORKER'
+        const newUser: AppUser = {
+          id: res.user.id,
+          name: res.user.name || identifier.split('@')[0],
+          relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+          layer: isWorker ? 2 : 1,
+          portraitTone: 'amber',
+          canSeeTrends: true,
+        }
+        dispatch({ type: 'signIn', userId: res.user.id, user: newUser })
       }
     },
 
-    register: async (data) => {
+    register: async (data: { name: string; email?: string; phone?: string; password: string, role?: string }) => {
       const res = await authApi.register(data)
       if (res) {
         setTokens(res.accessToken, res.refreshToken)
-        dispatch({ type: 'signIn', userId: res.user.id })
+        const isWorker = res.user.role === 'HEALTH_WORKER'
+        const newUser: AppUser = {
+          id: res.user.id,
+          name: res.user.name || data.name,
+          relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+          layer: isWorker ? 2 : 1,
+          portraitTone: 'amber',
+          canSeeTrends: true,
+        }
+        dispatch({ type: 'createNewSpace', userId: res.user.id, user: newUser })
       }
     },
 
@@ -140,7 +158,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         invitesApi.getInvites(patientId),
       ])
       if (reminders) {
+        const existingTitles = new Set(state.reminders.map((r) => r.title + r.time))
         for (const r of reminders) {
+          const key = (r.title || '') + (r.time || r.scheduledAt?.slice(11, 16) || '09:00')
+          if (existingTitles.has(key)) continue
           dispatch({ type: 'addReminder', reminder: {
             title: r.title,
             time: r.time || r.scheduledAt?.slice(11, 16) || '09:00',
@@ -152,7 +173,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
       if (memories) {
+        const existingTitles = new Set(state.memories.map((m) => m.title))
         for (const m of memories) {
+          if (existingTitles.has(m.title)) continue
           dispatch({ type: 'addMemory', memory: {
             title: m.title,
             description: m.description,
@@ -165,7 +188,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
       if (people) {
+        const existingIds = new Set(state.people.map((p) => p.id))
         for (const p of people) {
+          if (existingIds.has(p.id)) continue
           dispatch({ type: 'addPerson', person: {
             id: p.id,
             name: p.name,

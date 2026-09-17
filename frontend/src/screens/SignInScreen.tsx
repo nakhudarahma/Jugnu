@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import type { AppUser } from '@/types'
 import { BrandMark } from '@/components/caregiver/CaregiverHeader'
 import { Button } from '@/components/ui/Button'
 import { Field, TextInput } from '@/components/ui/Form'
 import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
+import { triggerGoogleSignIn } from '@/lib/googleAuth'
 import { useApp } from '@/state/AppContext'
 
 function GoogleMark() {
@@ -45,24 +47,57 @@ export function SignInScreen() {
 
   const primary = state.users.find((u) => u.layer === 1)
 
-  const googleSignIn = async () => {
-    if (!primary || connecting) return
-    setConnecting(true)
-    setError('')
-    if (backendAvailable && email) {
-      try {
-        await api.login(email, password || 'demo123')
+  const [pickingGoogle, setPickingGoogle] = useState(false)
+  const [showCustomInput, setShowCustomInput] = useState(false)
+  const [customGoogleName, setCustomGoogleName] = useState('')
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('')
+
+  const googleSignIn = () => {
+    if (connecting) return
+    triggerGoogleSignIn(
+      (_credential) => {
         setConnecting(false)
-        return
-      } catch { /* fall through to demo */ }
+        if (primary) dispatch({ type: 'signIn', userId: primary.id })
+        navigate('/')
+      },
+      () => {
+        setConnecting(false)
+        setShowCustomInput(false)
+        setPickingGoogle(true)
+      },
+    )
+  }
+
+  const selectGoogleAccount = (userType: 'primary' | 'family' | 'worker', name?: string) => {
+    setPickingGoogle(false)
+    setConnecting(true)
+    const accountName = name || (userType === 'family' ? 'Rahul' : userType === 'worker' ? 'Anita' : 'Shubh')
+    const userId = `u_${Date.now()}`
+    const newUser: Partial<AppUser> = {
+      name: accountName,
+      relationship: userType === 'primary' ? 'Primary Caregiver' : userType === 'family' ? 'Family Member' : 'Health Worker',
+      layer: userType === 'primary' ? 1 : userType === 'family' ? 3 : 2,
     }
-    window.setTimeout(() => dispatch({ type: 'signIn', userId: primary.id }), 700)
+    dispatch({ type: 'signIn', userId, user: newUser })
+    dispatch({ type: 'updatePatient', patch: { displayName: `${accountName}’s Care` } })
+
+    window.setTimeout(() => {
+      setConnecting(false)
+      if (userType === 'worker') {
+        navigate('/healthworker')
+      } else {
+        navigate('/')
+      }
+    }, 500)
   }
 
   const emailSignIn = async () => {
-    if (!primary || connecting) return
+    if (connecting) return
     setConnecting(true)
     setError('')
+    const extractedName = email ? email.split('@')[0].replace(/[._-]/g, ' ') : 'Caregiver'
+    const formattedName = extractedName.charAt(0).toUpperCase() + extractedName.slice(1)
+
     if (backendAvailable) {
       try {
         await api.login(email, password)
@@ -70,26 +105,47 @@ export function SignInScreen() {
         return
       } catch (err: any) {
         setError(err.message || 'Login failed. Falling back to demo mode.')
-        window.setTimeout(() => {
-          dispatch({ type: 'signIn', userId: primary.id })
-          setConnecting(false)
-        }, 500)
-        return
       }
     }
-    window.setTimeout(() => dispatch({ type: 'signIn', userId: primary.id }), 700)
+
+    const userId = `u_${Date.now()}`
+    const newUser: Partial<AppUser> = {
+      name: formattedName,
+      relationship: 'Primary Caregiver',
+      layer: 1,
+    }
+    dispatch({ type: 'signIn', userId, user: newUser })
+    dispatch({ type: 'updatePatient', patch: { displayName: `${formattedName}’s Care` } })
+
+    window.setTimeout(() => {
+      setConnecting(false)
+      navigate('/')
+    }, 500)
   }
 
   const enterFamilyDemo = () => {
-    if (!primary || connecting) return
+    if (connecting) return
     setPickingDemo(false)
     setConnecting(true)
-    window.setTimeout(() => dispatch({ type: 'signIn', userId: primary.id }), 500)
+    dispatch({ type: 'resetDemo' })
+    window.setTimeout(() => {
+      dispatch({ type: 'signIn', userId: 'u_meena' })
+      setConnecting(false)
+    }, 500)
   }
 
   const enterWorkerDemo = () => {
+    if (connecting) return
     setPickingDemo(false)
-    navigate('/healthworker')
+    setConnecting(true)
+    dispatch({ type: 'resetDemo' })
+    // Sign in as a layer-2 health worker so the signed-in routes are accessible
+    const hwUserId = `u_hw_demo_${Date.now()}`
+    dispatch({ type: 'signIn', userId: hwUserId, user: { name: 'Anita', relationship: 'Health Worker', layer: 2, portraitTone: 'dusk', canSeeTrends: true } })
+    window.setTimeout(() => {
+      setConnecting(false)
+      navigate('/healthworker')
+    }, 500)
   }
 
   const canSubmit = email.trim().includes('@') && password.length > 0
@@ -284,6 +340,117 @@ export function SignInScreen() {
             </span>
           </button>
         </div>
+      </Modal>
+
+      <Modal
+        open={pickingGoogle}
+        onClose={() => { setPickingGoogle(false); setShowCustomInput(false) }}
+        title="Sign in with Google"
+        description="Choose a Google Account or enter your own account details"
+        size="sm"
+      >
+        {showCustomInput ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (customGoogleName.trim()) selectGoogleAccount('primary', customGoogleName.trim())
+            }}
+            className="space-y-3"
+          >
+            <Field label="Your Full Name" required>
+              {(id) => (
+                <TextInput
+                  id={id}
+                  value={customGoogleName}
+                  onChange={(e) => setCustomGoogleName(e.target.value)}
+                  placeholder="e.g. Shubh Dwivedi"
+                  autoFocus
+                />
+              )}
+            </Field>
+            <Field label="Google Email">
+              {(id) => (
+                <TextInput
+                  id={id}
+                  type="email"
+                  value={customGoogleEmail}
+                  onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                  placeholder="shubh@gmail.com"
+                />
+              )}
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" type="button" onClick={() => setShowCustomInput(false)}>
+                Back
+              </Button>
+              <Button variant="primary" type="submit" disabled={!customGoogleName.trim()}>
+                Continue as {customGoogleName.trim() || 'User'}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowCustomInput(true)}
+              className="flex w-full items-center gap-3 rounded-2xl border-2 border-dashed border-glow-400 bg-glow-50/60 px-4 py-3 text-left transition duration-200 hover:bg-glow-100/80"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glow-500 font-bold text-white">
+                +
+              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-glow-900">Use another Google Account</span>
+                <span className="block text-xs text-glow-700">Enter your name & email to create your account</span>
+              </div>
+            </button>
+
+            <div className="relative py-1 text-center">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Or choose preset</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => selectGoogleAccount('primary', 'Meena Devi')}
+              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glow-100 font-bold text-glow-700">
+                M
+              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-ink truncate">Meena Devi</span>
+                <span className="block text-xs text-ink-faint truncate">meena.caregiver@gmail.com</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selectGoogleAccount('family', 'Rahul Sharma')}
+              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sage-100 font-bold text-sage-700">
+                R
+              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-ink truncate">Rahul Sharma</span>
+                <span className="block text-xs text-ink-faint truncate">rahul.family@gmail.com</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selectGoogleAccount('worker', 'Anita Das')}
+              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-dusk-100 font-bold text-dusk-700">
+                A
+              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-ink truncate">Anita Das (ASHA)</span>
+                <span className="block text-xs text-ink-faint truncate">anita.asha@gov.in</span>
+              </div>
+            </button>
+          </div>
+        )}
       </Modal>
     </div>
   )

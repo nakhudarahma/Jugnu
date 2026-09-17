@@ -65,6 +65,13 @@ export interface Reminder {
   assignedToUserId?: string
 }
 
+export interface SessionTimeMetrics {
+  totalDurationSeconds: number
+  avgResponseTimeMs: number
+  hesitationCount: number
+  fatigueRatio: number
+}
+
 export interface SessionRecord {
   id: string
   /** ISO date, "YYYY-MM-DD". */
@@ -75,6 +82,7 @@ export interface SessionRecord {
   domainScores: Record<CognitiveDomain, number>
   activityCount: number
   gentleCorrections: number
+  timeMetrics?: SessionTimeMetrics
 }
 
 export interface MoodEntry {

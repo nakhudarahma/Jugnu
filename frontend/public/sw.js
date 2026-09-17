@@ -30,6 +30,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
+  // Ignore non-http(s) requests and Vite dev server HMR / JS module requests
+  if (!url.protocol.startsWith('http')) return
+  if (
+    url.pathname.includes('/@vite/') ||
+    url.pathname.includes('/@react-refresh') ||
+    url.pathname.includes('/node_modules/') ||
+    url.search.includes('t=') ||
+    url.search.includes('v=')
+  ) {
+    return
+  }
+
   // API requests: network-first, fall back to cache
   if (url.pathname.startsWith('/api/') || url.pathname === '/health') {
     event.respondWith(
@@ -42,22 +54,36 @@ self.addEventListener('fetch', (event) => {
           }
           return response
         })
-        .catch(() => caches.match(event.request))
+        .catch(async () => {
+          const cached = await caches.match(event.request)
+          return cached || new Response(JSON.stringify({ offline: true, message: 'Offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        })
     )
     return
   }
 
-  // Static assets: cache-first, fall back to network
+  // Static assets: cache-first, fall back to network, fall back to offline index.html
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached
-      return fetch(event.request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-        }
-        return response
-      })
+      return fetch(event.request)
+        .then((response) => {
+          if (response.ok && event.request.method === 'GET') {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          }
+          return response
+        })
+        .catch(async () => {
+          if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+            const indexCache = await caches.match('/index.html')
+            if (indexCache) return indexCache
+          }
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' })
+        })
     })
   )
 })

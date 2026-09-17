@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   postgres:
@@ -40,6 +39,7 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://jugnu:jugnu_dev_password@postgres:5432/jugnu_db?schema=public
+      DIRECT_URL: postgresql://jugnu:jugnu_dev_password@postgres:5432/jugnu_db?schema=public
       JWT_SECRET: jugnu-docker-jwt-secret-change-in-production
       JWT_EXPIRES_IN: 7d
       JWT_REFRESH_SECRET: jugnu-docker-refresh-secret-change-in-production

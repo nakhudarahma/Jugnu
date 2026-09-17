@@ -24,7 +24,7 @@ export async function create(data: {
   const patient = await prisma.patient.findUnique({ where: { id: data.patientId } });
   if (!patient) throw new NotFoundError('Patient not found');
 
-  return prisma.moodEntry.create({
+  const newEntry = await prisma.moodEntry.create({
     data: {
       patientId: data.patientId,
       userId,
@@ -33,6 +33,40 @@ export async function create(data: {
       date: data.date ? new Date(data.date) : new Date(),
     },
   });
+
+  // Check for Caregiver Mood Alert (3 consecutive negative moods)
+  const recentMoods = await prisma.moodEntry.findMany({
+    where: { patientId: data.patientId, userId },
+    orderBy: { date: 'desc' },
+    take: 3,
+  });
+
+  if (recentMoods.length === 3) {
+    const isConsistentlyNegative = recentMoods.every((m) => m.mood === 'bad' || m.mood === 'exhausted');
+    if (isConsistentlyNegative) {
+      const existingAlert = await prisma.alert.findFirst({
+        where: {
+          patientId: data.patientId,
+          type: 'CAREGIVER_SUPPORT',
+          status: 'ACTIVE',
+        },
+      });
+
+      if (!existingAlert) {
+        await prisma.alert.create({
+          data: {
+            patientId: data.patientId,
+            type: 'CAREGIVER_SUPPORT',
+            severity: 'HIGH',
+            message: 'Caregiver has logged 3 consecutive negative moods. Consider checking in or offering support.',
+            metadata: { userId },
+          },
+        });
+      }
+    }
+  }
+
+  return newEntry;
 }
 
 export async function remove(id: string) {

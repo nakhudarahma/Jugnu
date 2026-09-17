@@ -18,8 +18,13 @@ import { TrendsScreen } from '@/screens/TrendsScreen'
 import { useApp } from '@/state/AppContext'
 
 /** Where "home" is depends on who is holding the device. */
+function isHealthWorker(user: { layer?: number; relationship?: string } | null | undefined): boolean {
+  return user?.relationship === 'Health Worker' || (user?.layer === 2 && user?.relationship !== 'Trusted helper' && user?.relationship !== 'Day helper')
+}
+
 function useHomePath(): string {
   const { currentUser } = useApp()
+  if (isHealthWorker(currentUser)) return '/healthworker'
   return currentUser?.layer === 3 ? '/family' : '/'
 }
 
@@ -46,10 +51,7 @@ export function App() {
         <Routes>
           <Route path="/login" element={<SignInScreen />} />
           <Route path="/signup" element={<SignUpScreen />} />
-          <Route path="/healthworker" element={<HealthWorkerScreen />} />
-          <Route path="/healthworker/settings" element={<HealthWorkerSettingsScreen />} />
-          <Route path="/healthworker/:residentId" element={<HealthWorkerPatientScreen />} />
-          <Route path="/healthworker/:residentId/session" element={<HealthWorkerSessionScreen />} />
+
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
@@ -63,12 +65,12 @@ export function App() {
     // console is where a caregiver-reported problem gets diagnosed.
     <BrowserRouter future={routerFuture}>
       <Routes>
-        <Route path="/" element={layer === 3 ? <Navigate to="/family" replace /> : <CaregiverDashboard />} />
+        <Route path="/" element={layer === 3 ? <Navigate to="/family" replace /> : isHealthWorker(currentUser) ? <Navigate to="/healthworker" replace /> : <CaregiverDashboard />} />
 
         <Route
           path="/session"
           element={
-            <Allowed when={can.startSession}>
+            <Allowed when={can.startSession && !isHealthWorker(currentUser)}>
               <SessionScreen />
             </Allowed>
           }
@@ -122,7 +124,15 @@ export function App() {
         <Route path="/family" element={layer === 3 ? <FamilyHomeScreen /> : <Navigate to="/" replace />} />
 
         <Route path="/settings" element={<SettingsScreen />} />
+        
+        <Route path="/healthworker" element={<HealthWorkerScreen />} />
+        <Route path="/healthworker/settings" element={<HealthWorkerSettingsScreen />} />
+        <Route path="/healthworker/:residentId" element={<HealthWorkerPatientScreen />} />
+        <Route path="/healthworker/:residentId/session" element={<HealthWorkerSessionScreen />} />
 
+        {/* Redirect auth pages and any unknown URL to home, which then re-routes by role */}
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/signup" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

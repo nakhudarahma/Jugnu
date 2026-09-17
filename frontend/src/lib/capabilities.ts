@@ -5,7 +5,7 @@ import type { AppUser, LayerId } from '@/types'
  * in a demo is locked behind a layer it wasn't meant for. Flip this to false to
  * resume role-based restrictions when the backend arrives.
  */
-export const DEMO_MODE = true
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
 
 /**
  * Layer 2 is the same Jugnu, with fewer keys. Restricted actions are hidden or

@@ -1,21 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { UserRole } from '@prisma/client';
 import { env } from '../config/env';
 import { UnauthorizedError } from '../utils/errors';
 
 export interface JwtPayload {
   id: string;
-  role: string;
+  role: UserRole;
   name: string;
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
+
 
 const authMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;

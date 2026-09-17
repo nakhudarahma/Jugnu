@@ -163,6 +163,12 @@ const sessions: SessionRecord[] = history.map(([ago, memory, attention, recognit
   domainScores: { memory, attention, recognition },
   activityCount: 3,
   gentleCorrections: i % 3 === 0 ? 1 : 0,
+  timeMetrics: {
+    totalDurationSeconds: 260 + (i * 8) - (ago % 15),
+    avgResponseTimeMs: 3700 + (i * 40) - (ago * 12),
+    hesitationCount: i % 5 === 0 ? 1 : 0,
+    fatigueRatio: 1.0 + (i % 3) * 0.1,
+  },
 }))
 
 const moods: MoodEntry[] = [

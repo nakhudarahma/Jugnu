@@ -1,5 +1,6 @@
 import { Page, ScreenHeader } from '@/components/caregiver/Page'
 import { ChangeSignal } from '@/components/caregiver/ChangeSignal'
+import { SessionPaceAnalysis } from '@/components/caregiver/SessionPaceAnalysis'
 import { Card, SectionCard } from '@/components/ui/Card'
 import { Chip, EmptyState } from '@/components/ui/Bits'
 import { relativeDayLabel } from '@/lib/date'
@@ -33,6 +34,8 @@ export function TrendsScreen() {
 
       <div className="space-y-4">
         {can.viewChangeSignal && <ChangeSignal signal={changeSignal(state.sessions)} />}
+
+        <SessionPaceAnalysis sessions={state.sessions} />
 
         <div className="space-y-3">
           {trends.map((trend) => (

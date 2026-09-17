@@ -77,7 +77,7 @@ export async function processSyncEvent(
             questionId: payload.questionId,
             correct: payload.correct,
             responseTimeMs: payload.responseTimeMs ?? null,
-            difficulty: payload.difficulty as SyncEvent['eventType'] extends never ? never : never,
+            difficulty: payload.difficulty as import('@prisma/client').GameDifficulty,
             score: payload.score ?? null,
             offlineEventId: payload.offlineEventId,
           },

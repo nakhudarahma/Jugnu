@@ -191,7 +191,7 @@ export async function analyzeSession(sessionId: string): Promise<void> {
       cognitiveDomain: session.game.type,
       abilityEstimate: ability,
       currentValue: ability,
-      trend: trend as 'IMPROVING' | 'STABLE' | 'DECLINING' | null,
+      trend: trend ?? undefined,
       explanation,
       modelVersion: 'v1.0',
     },
