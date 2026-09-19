@@ -27,6 +27,10 @@ interface AppContextValue {
     login: (identifier: string, password: string) => Promise<void>
     register: (data: { name: string; email?: string; phone?: string; password: string; role?: string }) => Promise<void>
     logout: () => Promise<void>
+    googleLogin: (
+      accessToken: string,
+      opts?: { role?: string; createIfMissing?: boolean },
+    ) => Promise<authApi.GoogleLoginResponse>
     syncFromBackend: () => Promise<void>
     addReminder: (patientId: string, data: Record<string, unknown>) => Promise<void>
     updateReminder: (id: string, data: Record<string, unknown>) => Promise<void>
@@ -71,6 +75,11 @@ function initialState(): AppState {
   }
   if (merged.patient.personalizationLevel === 0) {
     merged.patient = { ...merged.patient, personalizationLevel: 1 }
+  }
+  // Migration: spaces saved before `spaceId` existed have a real (non-seed) patient
+  // profile but no marker. Assign one so a second account joins instead of wiping it.
+  if (!merged.spaceId && merged.patient.id !== seedState.patient.id) {
+    merged.spaceId = `sp_${Date.now()}`
   }
   return merged
 }
@@ -146,6 +155,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTokens()
       dispatch({ type: 'signOut' })
     },
+
+    googleLogin: (accessToken, opts) => authApi.googleLogin(accessToken, opts),
 
     syncFromBackend: async () => {
       if (!backendAvailable) return

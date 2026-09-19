@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { AppUser } from '@/types'
 import { BrandMark } from '@/components/caregiver/CaregiverHeader'
-import { Button } from '@/components/ui/Button'
-import { Field, TextInput } from '@/components/ui/Form'
 import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
+import { ApiError, setTokens } from '@/lib/api'
 import { triggerGoogleSignIn } from '@/lib/googleAuth'
 import { useApp } from '@/state/AppContext'
 
@@ -36,73 +35,120 @@ function SubtleRings() {
 }
 
 export function SignUpScreen() {
-  const { state, dispatch } = useApp()
+  const { state, dispatch, backendAvailable, api } = useApp()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [googleId, setGoogleId] = useState('')
+  const [googleAccessToken, setGoogleAccessToken] = useState('')
   const [connecting, setConnecting] = useState(false)
+  const [error, setError] = useState('')
   const [pickingMode, setPickingMode] = useState(false)
-  const [pickingGoogle, setPickingGoogle] = useState(false)
-  const [showCustomInput, setShowCustomInput] = useState(false)
-  const [customGoogleName, setCustomGoogleName] = useState('')
-  const [customGoogleEmail, setCustomGoogleEmail] = useState('')
 
   const googleSignUp = () => {
     if (connecting) return
     setConnecting(true)
+    setError('')
     triggerGoogleSignIn(
-      (profile) => {
-        setConnecting(false)
+      ({ profile, accessToken }) => {
         const normalizedEmail = (profile.email || '').toLowerCase()
+        const haveProfile = () => {
+          setName(profile.name || 'Caregiver')
+          setEmail(normalizedEmail || profile.email || '')
+          setGoogleId(profile.sub || '')
+          setGoogleAccessToken(accessToken)
+          setPickingMode(true)
+        }
+        const signInExisting = (userId: string, layer: number) => {
+          dispatch({ type: 'signIn', userId })
+          navigate(layer === 2 ? '/healthworker' : '/')
+        }
+
+        // Server-verified: does this account already exist?
+        if (backendAvailable) {
+          api.googleLogin(accessToken, { createIfMissing: false })
+            .then((res) => {
+              setTokens(res.accessToken, res.refreshToken)
+              const isWorker = res.user.role === 'HEALTH_WORKER'
+              dispatch({
+                type: 'signIn',
+                userId: res.user.id,
+                user: {
+                  name: res.user.name,
+                  relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+                  layer: isWorker ? 2 : 1,
+                  googleId: profile.sub,
+                  googleEmail: profile.email?.toLowerCase(),
+                  canSeeTrends: true,
+                },
+              })
+              navigate(isWorker ? '/healthworker' : '/')
+            })
+            .catch((err: unknown) => {
+              if (err instanceof ApiError && err.status === 404) {
+                // No account yet — capture their details and ask which mode to create.
+                haveProfile()
+              } else {
+                setError("Couldn't reach Jugnu to create your account. Please try again.")
+              }
+            })
+            .finally(() => setConnecting(false))
+          return
+        }
+
+        // Offline / demo fallback: recognise or create accounts stored locally.
+        setConnecting(false)
         const existingUser =
           (profile.sub ? state.users.find((u) => u.googleId === profile.sub) : undefined) ||
           state.users.find((u) => u.googleEmail?.toLowerCase() === normalizedEmail)
-        // Returning visitor with an already-created space — sign them straight in.
         if (existingUser) {
-          dispatch({ type: 'signIn', userId: existingUser.id })
-          navigate(existingUser.layer === 2 ? '/healthworker' : '/')
+          signInExisting(existingUser.id, existingUser.layer)
           return
         }
-        setName(profile.name || 'Caregiver')
-        setEmail(normalizedEmail || profile.email || '')
-        setGoogleId(profile.sub || '')
-        setPickingMode(true)
+        haveProfile()
       },
       (reason) => {
         setConnecting(false)
         if (reason === 'cancelled') return
-        setShowCustomInput(false)
-        setPickingGoogle(true)
+        setError("Couldn't reach Google. Please try again.")
       },
     )
-  }
-
-  const selectGoogleAccount = (accountName: string, accountEmail?: string) => {
-    setPickingGoogle(false)
-    setConnecting(true)
-    const userId = `u_${Date.now()}`
-    const newUser: Partial<AppUser> = {
-      name: accountName,
-      relationship: 'Primary Caregiver',
-      layer: 1,
-      googleEmail: accountEmail?.trim() || undefined,
-    }
-    dispatch({ type: 'createNewSpace', userId, user: newUser })
-
-    window.setTimeout(() => {
-      setConnecting(false)
-      navigate('/')
-    }, 500)
   }
 
   const registerWithMode = (role: 'FAMILY_CAREGIVER' | 'HEALTH_WORKER') => {
     setPickingMode(false)
     setConnecting(true)
+    setError('')
 
-    // Offline: create a local user. Dispatching sets currentUser, which triggers
-    // App.tsx to switch to the signed-in router. The /signup route there immediately
-    // redirects to / which then redirects by role (health worker → /healthworker).
+    // Server-verified account creation. Dispatching sets currentUser, which
+    // switches App.tsx to the signed-in router; /signup then redirects to /
+    // which re-routes by role (health worker → /healthworker).
+    if (backendAvailable && googleAccessToken) {
+      api.googleLogin(googleAccessToken, { role, createIfMissing: true })
+        .then((res) => {
+          setTokens(res.accessToken, res.refreshToken)
+          const isWorker = res.user.role === 'HEALTH_WORKER'
+          dispatch({
+            type: 'createNewSpace',
+            userId: res.user.id,
+            user: {
+              name: res.user.name,
+              relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+              layer: isWorker ? 2 : 1,
+              googleId,
+              googleEmail: email.trim() || undefined,
+              canSeeTrends: true,
+            },
+          })
+          navigate(isWorker ? '/healthworker' : '/')
+        })
+        .catch(() => {
+          setError("Couldn't create your Jugnu account. Please try again.")
+        })
+        .finally(() => setConnecting(false))
+      return
+    }
+
     const userId = `u_${Date.now()}`
     const isWorker = role === 'HEALTH_WORKER'
     const displayName = name.trim() || 'Caregiver'
@@ -197,6 +243,12 @@ export function SignUpScreen() {
             {connecting ? 'Creating your account…' : 'Continue with Google'}
           </button>
 
+          {error && (
+            <p className="mt-2 text-center text-[0.8rem] text-[#b3352e]" role="alert">
+              {error}
+            </p>
+          )}
+
           <p className="mt-7 text-center text-[0.8rem] text-ink-soft/90">
             Already have an account?{' '}
             <Link to="/login" className="font-semibold text-glow-700 underline-offset-4 transition hover:underline">
@@ -242,71 +294,6 @@ export function SignUpScreen() {
             </span>
           </button>
         </div>
-      </Modal>
-
-      <Modal
-        open={pickingGoogle}
-        onClose={() => { setPickingGoogle(false); setShowCustomInput(false) }}
-        title="Sign up with Google"
-        description="Choose a Google Account or enter your own account details"
-        size="sm"
-      >
-        {showCustomInput ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (customGoogleName.trim()) selectGoogleAccount(customGoogleName.trim(), customGoogleEmail)
-            }}
-            className="space-y-3"
-          >
-            <Field label="Your Full Name" required>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  value={customGoogleName}
-                  onChange={(e) => setCustomGoogleName(e.target.value)}
-                  placeholder="e.g. Shubh Dwivedi"
-                  autoFocus
-                />
-              )}
-            </Field>
-            <Field label="Google Email">
-              {(id) => (
-                <TextInput
-                  id={id}
-                  type="email"
-                  value={customGoogleEmail}
-                  onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                  placeholder="shubh@gmail.com"
-                />
-              )}
-            </Field>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" type="button" onClick={() => setShowCustomInput(false)}>
-                Back
-              </Button>
-              <Button variant="primary" type="submit" disabled={!customGoogleName.trim()}>
-                Create as {customGoogleName.trim() || 'User'}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setShowCustomInput(true)}
-              className="flex w-full items-center gap-3 rounded-2xl border-2 border-dashed border-glow-400 bg-glow-50/60 px-4 py-3 text-left transition duration-200 hover:bg-glow-100/80"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glow-500 font-bold text-white">
-                +
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-glow-900">Use another Google Account</span>
-                <span className="block text-xs text-glow-700">Enter your name & email to create your space</span>
-              </div>
-            </button>
-          </div>
-        )}
       </Modal>
     </div>
   )

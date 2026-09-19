@@ -149,30 +149,36 @@ export function reducer(state: AppState, action: Action): AppState {
         canSeeTrends: true,
         ...action.user,
       }
+      const freshSpace = !state.spaceId
+      const freshPatient: PatientProfile = {
+        id: uid('p'),
+        name: 'My Loved One',
+        displayName: `${newUser.name}’s Care`,
+        age: 70,
+        relationshipToCaregiver: 'Family',
+        region: 'India',
+        language: 'hi',
+        personalizationLevel: 1,
+        morningRoutine: ['wake', 'brush', 'tea', 'medicine', 'breakfast'],
+        voiceEnabled: true,
+        speechRate: 0.85,
+        portraitTone: 'amber',
+      }
       return {
         ...state,
-        patient: {
-          id: uid('p'),
-          name: 'My Loved One',
-          displayName: `${newUser.name}’s Care`,
-          age: 70,
-          relationshipToCaregiver: 'Family',
-          region: 'India',
-          language: 'hi',
-          personalizationLevel: 1,
-          morningRoutine: ['wake', 'brush', 'tea', 'medicine', 'breakfast'],
-          voiceEnabled: true,
-          speechRate: 0.85,
-          portraitTone: 'amber',
-        },
-        users: [newUser],
+        spaceId: state.spaceId || uid('sp'),
+        // The first account creates the space; later accounts join the existing
+        // space — the patient profile, memories, circle and routines are shared,
+        // so signing up a second account must never wipe the first user's data.
+        patient: freshSpace ? freshPatient : state.patient,
+        users: [...state.users.filter((u) => u.id !== newUser.id), newUser],
         currentUserId: action.userId,
-        people: [],
-        memories: [],
-        reminders: [],
-        sessions: [],
-        moods: [],
-        invites: [],
+        people: freshSpace ? [] : state.people,
+        memories: freshSpace ? [] : state.memories,
+        reminders: freshSpace ? [] : state.reminders,
+        sessions: freshSpace ? [] : state.sessions,
+        moods: freshSpace ? [] : state.moods,
+        invites: freshSpace ? [] : state.invites,
         pendingMoodCheckIn: false,
       }
     }

@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, rawFetch } from '@/lib/api'
 
 export interface LoginResponse {
   user: { id: string; name: string; phone?: string; email?: string; role: string }
@@ -7,6 +7,12 @@ export interface LoginResponse {
 }
 
 export interface RegisterResponse extends LoginResponse {}
+
+export interface GoogleLoginResponse extends LoginResponse {
+  user: LoginResponse['user'] & { googleId?: string }
+  /** True when the backend created the account on this call. */
+  created?: boolean
+}
 
 export async function login(identifier: string, password: string): Promise<LoginResponse | null> {
   return api<LoginResponse>('/auth/login', {
@@ -25,6 +31,21 @@ export async function register(data: {
   return api<RegisterResponse>('/auth/register', {
     method: 'POST',
     json: data,
+  })
+}
+
+/**
+ * Server-verified Google sign-in. Unlike the queueing `api()` helpers, this uses
+ * `rawFetch` so auth failures (e.g. "no account found") surface as `ApiError`
+ * with the real status code instead of being swallowed by the offline queue.
+ */
+export async function googleLogin(
+  accessToken: string,
+  opts: { role?: string; createIfMissing?: boolean } = {},
+): Promise<GoogleLoginResponse> {
+  return rawFetch<GoogleLoginResponse>('/auth/google', {
+    method: 'POST',
+    json: { accessToken, role: opts.role, createIfMissing: opts.createIfMissing },
   })
 }
 

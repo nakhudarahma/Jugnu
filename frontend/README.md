@@ -8,10 +8,15 @@ caregiver needs to set up, watch over and share the day lives behind the caregiv
 the patient sees is one calm activity at a time — voice first, no menus, no navigation, no
 scores, and no way to fail.
 
-This repository is the **frontend only**. There is no backend, no database and no API: the whole
-product runs in the browser on seeded demo data held in React state and persisted to
-`localStorage`. Every interaction — sessions, voice, games, forms, modals, the long-press exit,
-the PIN screen, reminders, approvals, invites, settings — actually works.
+This repository is the **frontend**. There is no database and no mandatory API: the whole product
+runs in the browser on seeded demo data held in React state and persisted to `localStorage`. Every
+interaction — sessions, voice, games, forms, modals, the long-press exit, the PIN screen, reminders,
+approvals, invites, settings — actually works.
+
+Sign-in and sign-up use **real Google OAuth**. When the Jugnu backend (in `../backend`) is reachable,
+the Google access token is sent to `POST /auth/google` for server-side verification, a JWT session is
+established, and the account lives in Postgres. When it is not reachable (local/demo builds), the
+same Google chooser runs but the account is recognised purely from `localStorage`.
 
 ## Running it
 
@@ -35,9 +40,9 @@ serves that build.
 
 ## The four layers
 
-Jugnu has no sign-in or sign-up screen. The app opens on the primary caregiver's own device, as
-her. To look at the product through another pair of eyes, use the small profile icon in the
-header → **Viewing Jugnu as**. That switch is a demo affordance, not authentication.
+Jugnu opens on a sign-in / sign-up screen (`Continue with Google` or a demo account). Once signed
+in as a caregiver, the small profile icon in the header → **Viewing Jugnu as** switches between the
+demo accounts that share the space. That switch is a demo affordance, not authentication.
 
 | Layer | Who | What they get |
 | --- | --- | --- |
@@ -138,4 +143,5 @@ tablet-first.
 
 Photos become object URLs in the browser. Voice notes use `MediaRecorder` when the microphone is
 available and fall back to a typed transcript spoken by the browser's voice when it is not.
-Invites are recorded locally and never sent. Nothing leaves the device.
+Invites are recorded locally and never sent. When the backend is offline nothing leaves the device;
+when it is reachable, sign-in is verified server-side and writes are queued and synced.

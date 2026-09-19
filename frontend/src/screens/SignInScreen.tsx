@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BrandMark } from '@/components/caregiver/CaregiverHeader'
-import { Button } from '@/components/ui/Button'
-import { Field, TextInput } from '@/components/ui/Form'
 import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
+import { ApiError, setTokens } from '@/lib/api'
 import { triggerGoogleSignIn } from '@/lib/googleAuth'
 import { useApp } from '@/state/AppContext'
 
@@ -35,23 +34,50 @@ function SubtleRings() {
 }
 
 export function SignInScreen() {
-  const { state, dispatch } = useApp()
+  const { state, dispatch, backendAvailable, api } = useApp()
   const navigate = useNavigate()
   const [connecting, setConnecting] = useState(false)
   const [pickingDemo, setPickingDemo] = useState(false)
   const [error, setError] = useState('')
-
-  const [pickingGoogle, setPickingGoogle] = useState(false)
-  const [showCustomInput, setShowCustomInput] = useState(false)
-  const [customGoogleName, setCustomGoogleName] = useState('')
-  const [customGoogleEmail, setCustomGoogleEmail] = useState('')
 
   const googleSignIn = () => {
     if (connecting) return
     setConnecting(true)
     setError('')
     triggerGoogleSignIn(
-      (profile) => {
+      async ({ profile, accessToken }) => {
+        // Server-verified sign-in when the backend is reachable.
+        if (backendAvailable) {
+          try {
+            const res = await api.googleLogin(accessToken, { createIfMissing: false })
+            setTokens(res.accessToken, res.refreshToken)
+            const isWorker = res.user.role === 'HEALTH_WORKER'
+            dispatch({
+              type: 'signIn',
+              userId: res.user.id,
+              user: {
+                name: res.user.name,
+                relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+                layer: isWorker ? 2 : 1,
+                googleId: profile.sub,
+                googleEmail: profile.email?.toLowerCase(),
+                canSeeTrends: true,
+              },
+            })
+            navigate(isWorker ? '/healthworker' : '/')
+          } catch (err) {
+            if (err instanceof ApiError && err.status === 404) {
+              setError("No Jugnu account found for this Google account — sign up first to create your space.")
+            } else {
+              setError("Couldn't sign you in with Google. Please try again.")
+            }
+          } finally {
+            setConnecting(false)
+          }
+          return
+        }
+
+        // Offline / demo fallback: recognise accounts stored locally in this browser.
         setConnecting(false)
         const email = profile.email?.toLowerCase()
         const existingUser =
@@ -68,34 +94,9 @@ export function SignInScreen() {
       (reason) => {
         setConnecting(false)
         if (reason === 'cancelled') return
-        setShowCustomInput(false)
-        setPickingGoogle(true)
+        setError("Couldn't reach Google. Please try again.")
       },
     )
-  }
-
-  const selectGoogleAccount = (name: string, accountEmail?: string) => {
-    if (connecting) return
-    setPickingGoogle(false)
-    setConnecting(true)
-    const email = accountEmail?.trim().toLowerCase()
-    const existingUser =
-      (email ? state.users.find((u) => u.googleEmail?.toLowerCase() === email) : undefined) ||
-      state.users.find((u) => u.name.toLowerCase() === name.toLowerCase())
-
-    window.setTimeout(() => {
-      setConnecting(false)
-      if (existingUser) {
-        dispatch({ type: 'signIn', userId: existingUser.id })
-        if (existingUser.layer === 2) {
-          navigate('/healthworker')
-        } else {
-          navigate('/')
-        }
-      } else {
-        setError("No Jugnu account found for this Google account — sign up first to create your space.")
-      }
-    }, 500)
   }
 
   const enterFamilyDemo = () => {
@@ -268,71 +269,6 @@ export function SignInScreen() {
             </span>
           </button>
         </div>
-      </Modal>
-
-      <Modal
-        open={pickingGoogle}
-        onClose={() => { setPickingGoogle(false); setShowCustomInput(false) }}
-        title="Sign in with Google"
-        description="Choose a Google Account or enter your own account details"
-        size="sm"
-      >
-        {showCustomInput ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (customGoogleName.trim()) selectGoogleAccount(customGoogleName.trim(), customGoogleEmail)
-            }}
-            className="space-y-3"
-          >
-            <Field label="Your Full Name" required>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  value={customGoogleName}
-                  onChange={(e) => setCustomGoogleName(e.target.value)}
-                  placeholder="e.g. Shubh Dwivedi"
-                  autoFocus
-                />
-              )}
-            </Field>
-            <Field label="Google Email">
-              {(id) => (
-                <TextInput
-                  id={id}
-                  type="email"
-                  value={customGoogleEmail}
-                  onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                  placeholder="shubh@gmail.com"
-                />
-              )}
-            </Field>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" type="button" onClick={() => setShowCustomInput(false)}>
-                Back
-              </Button>
-              <Button variant="primary" type="submit" disabled={!customGoogleName.trim()}>
-                Continue as {customGoogleName.trim() || 'User'}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setShowCustomInput(true)}
-              className="flex w-full items-center gap-3 rounded-2xl border-2 border-dashed border-glow-400 bg-glow-50/60 px-4 py-3 text-left transition duration-200 hover:bg-glow-100/80"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glow-500 font-bold text-white">
-                +
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-glow-900">Use another Google Account</span>
-                <span className="block text-xs text-glow-700">Enter your name & email to create your account</span>
-              </div>
-            </button>
-          </div>
-        )}
       </Modal>
     </div>
   )

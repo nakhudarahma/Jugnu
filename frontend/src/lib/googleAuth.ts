@@ -28,9 +28,16 @@ export interface GoogleProfile {
   locale?: string
 }
 
+export interface GoogleAuthResult {
+  profile: GoogleProfile
+  /** Raw OAuth access token, sent server-side for verification via `/auth/google`. */
+  accessToken: string
+}
+
 /**
  * Opens the real Google account chooser in a popup and delivers the selected
- * account's profile (name, email, picture).
+ * account's profile (name, email, picture) alongside the raw access token so the
+ * caller can verify it server-side.
  *
  * Uses the Google Identity Services OAuth 2.0 implicit flow with
  * `prompt: 'select_account'`, which guarantees the account chooser appears
@@ -38,7 +45,7 @@ export interface GoogleProfile {
  * popups are not blocked.
  */
 export function triggerGoogleSignIn(
-  onSuccess: (profile: GoogleProfile) => void,
+  onSuccess: (result: GoogleAuthResult) => void,
   onError?: (reason: GoogleAuthFailure) => void,
 ): void {
   if (typeof window === 'undefined' || !window.google?.accounts?.oauth2) {
@@ -63,14 +70,15 @@ export function triggerGoogleSignIn(
           settle(() => onError?.('cancelled'))
           return
         }
+        const accessToken = response.access_token
         fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${response.access_token}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
         })
           .then((res) => {
             if (!res.ok) throw new Error('userinfo request failed')
             return res.json()
           })
-          .then((profile: GoogleProfile) => settle(() => onSuccess(profile)))
+          .then((profile: GoogleProfile) => settle(() => onSuccess({ profile, accessToken })))
           .catch(() => settle(() => onError?.('network')))
       },
       error_callback: (error: { error?: string; error_description?: string }) => {

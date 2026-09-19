@@ -97,7 +97,7 @@ async function tryRefresh(): Promise<boolean> {
 
 // ─── Core fetch ──────────────────────────────────────────────────────────────
 
-async function rawFetch<T>(path: string, opts: RequestInit & { json?: unknown } = {}): Promise<T> {
+export async function rawFetch<T>(path: string, opts: RequestInit & { json?: unknown } = {}): Promise<T> {
   const { json, ...init } = opts
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string> || {}),

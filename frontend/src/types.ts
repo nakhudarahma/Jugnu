@@ -129,6 +129,8 @@ export interface PatientProfile {
 }
 
 export interface AppState {
+  /** Stable id of the family/care space. The FIRST account creates it; later accounts join it instead of wiping it. */
+  spaceId?: string
   patient: PatientProfile
   users: AppUser[]
   currentUserId: string | null
