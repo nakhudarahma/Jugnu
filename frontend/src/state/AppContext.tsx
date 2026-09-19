@@ -25,7 +25,7 @@ interface AppContextValue {
   queueLength: number
   api: {
     login: (identifier: string, password: string) => Promise<void>
-    register: (data: { name: string; email?: string; phone?: string; password: string }) => Promise<void>
+    register: (data: { name: string; email?: string; phone?: string; password: string; role?: string }) => Promise<void>
     logout: () => Promise<void>
     syncFromBackend: () => Promise<void>
     addReminder: (patientId: string, data: Record<string, unknown>) => Promise<void>

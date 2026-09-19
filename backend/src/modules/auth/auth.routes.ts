@@ -29,8 +29,17 @@ const refreshSchema = z.object({
   }),
 });
 
+const googleSchema = z.object({
+  body: z.object({
+    accessToken: z.string().min(1),
+    role: z.enum(['FAMILY_CAREGIVER', 'CONNECTED_FAMILY', 'HEALTH_WORKER']).optional(),
+    createIfMissing: z.boolean().optional(),
+  }),
+});
+
 router.post('/register', validate(registerSchema), controller.register);
 router.post('/login', validate(loginSchema), controller.login);
+router.post('/google', validate(googleSchema), controller.google);
 router.post('/refresh', validate(refreshSchema), controller.refresh);
 router.post('/logout', auth, controller.logout);
 router.get('/me', auth, controller.me);

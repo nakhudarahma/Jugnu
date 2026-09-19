@@ -13,6 +13,10 @@ export const env = {
   AI_SERVICE_ENABLED: process.env.AI_SERVICE_ENABLED === 'true',
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  GOOGLE_CLIENT_ID:
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.VITE_GOOGLE_CLIENT_ID ||
+    '346769116770-8sbq3hjq50ubsjkp5vt3apf0l6mejhbj.apps.googleusercontent.com',
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
 };
 

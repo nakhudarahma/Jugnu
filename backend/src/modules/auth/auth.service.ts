@@ -1,10 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'node:crypto';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { BadRequestError, UnauthorizedError, ConflictError, NotFoundError } from '../../utils/errors';
 import { UserRole } from '@prisma/client';
 import { logger } from '../../utils/logger';
+import { verifyGoogleAccessToken } from '../../services/google-oauth';
 
 interface TokenPayload {
   id: string;
@@ -91,6 +93,49 @@ export async function login(identifier: string, password: string) {
   return {
     user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role },
     ...tokens,
+  };
+}
+
+export async function googleLogin(accessToken: string, opts: { role?: UserRole; createIfMissing?: boolean } = {}) {
+  const profile = await verifyGoogleAccessToken(accessToken, env.GOOGLE_CLIENT_ID);
+  const email = profile.email.toLowerCase();
+
+  let user = await prisma.user.findUnique({ where: { email } });
+  let created = false;
+
+  if (!user) {
+    if (!opts.createIfMissing) {
+      logger.warn('auth.google_account_not_found', { email });
+      throw new NotFoundError('No Jugnu account found for this Google account');
+    }
+    if (profile.email_verified === false) {
+      throw new UnauthorizedError('Google email is not verified');
+    }
+    const passwordHash = await bcrypt.hash(randomBytes(24).toString('hex'), 12);
+    user = await prisma.user.create({
+      data: {
+        name: profile.name || email.split('@')[0],
+        email,
+        passwordHash,
+        role: opts.role || UserRole.FAMILY_CAREGIVER,
+      },
+    });
+    created = true;
+  }
+
+  const tokens = generateTokens({ id: user.id, role: user.role, name: user.name });
+  const existingTokens = (user.refreshTokens as string[]) || [];
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshTokens: [...existingTokens.slice(-4), tokens.refreshToken] },
+  });
+
+  logger.info('auth.google_success', { userId: user.id, created });
+
+  return {
+    user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role, googleId: profile.sub },
+    ...tokens,
+    created,
   };
 }
 

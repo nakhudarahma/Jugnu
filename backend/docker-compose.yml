@@ -50,6 +50,7 @@ services:
       AI_SERVICE_ENABLED: "true"
       ENCRYPTION_KEY: jugnu-docker-encryption-key-change-in-production
       CORS_ORIGIN: "http://localhost:5173"
+      GOOGLE_CLIENT_ID: 346769116770-8sbq3hjq50ubsjkp5vt3apf0l6mejhbj.apps.googleusercontent.com
       LOG_LEVEL: info
     depends_on:
       postgres:

@@ -17,6 +17,14 @@ export async function login(req: Request, res: Response, next: NextFunction) {
   } catch (err) { next(err); }
 }
 
+export async function google(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { accessToken, role, createIfMissing } = req.body;
+    const result = await authService.googleLogin(accessToken, { role, createIfMissing });
+    sendSuccess(res, result, result.created ? 'Google account created' : 'Signed in with Google', result.created ? 201 : 200);
+  } catch (err) { next(err); }
+}
+
 export async function logout(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await authService.logout(req.user!.id, req.body.refreshToken);

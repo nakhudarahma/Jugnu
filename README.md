@@ -181,6 +181,34 @@ AI service runs at **http://localhost:8000**. The backend falls back to local Ty
 | `AI_SERVICE_ENABLED` | No | Enable remote AI calls |
 | `CORS_ORIGIN` | No | Allowed CORS origin |
 
+**Frontend** (`frontend/.env`, see `frontend/.env.example`):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth web client ID for "Continue with Google" |
+
+---
+
+## Google Sign-In (deployment setup)
+
+Jugnu signs users in with **Google Identity Services**. The frontend opens the real
+Google account chooser, then (when the backend is reachable) verifies the account
+server-side and issues JWT tokens for subsequent API calls.
+
+Two Cloud Console steps are required before deployment:
+
+1. **OAuth consent screen** (`APIs & Services → OAuth consent screen`)
+   - **App name must be `Jugnu`** — this is the name shown in the account chooser.
+     If it shows anything else (e.g. a different project's name), the client ID was
+     created in the wrong Google Cloud project.
+2. **OAuth client ID** (type *Web application*)
+   - **Authorized JavaScript origins** must include every origin the app is served
+     from: `http://localhost:5173` for local dev and `https://<your-domain>` for
+     production. Without them the chooser popup fails.
+   - Paste the client ID into `frontend/.env` as `VITE_GOOGLE_CLIENT_ID`.
+   - The value is public by design (it ships in the browser bundle) — never add a
+     client secret to the frontend.
+
 ---
 
 ## Demo Accounts

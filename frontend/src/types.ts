@@ -98,6 +98,10 @@ export interface AppUser {
   name: string
   relationship: string
   layer: LayerId
+  /** Google's stable per-account ID (`sub`), used to recognise the account on return visits. */
+  googleId?: string
+  /** Google account tied to this user, captured via Google sign-in/sign-up. Used to recognise them on return visits. */
+  googleEmail?: string
   pin?: string
   portraitTone: Person['portraitTone']
   /** Layer 2 helpers see only these memories; empty means "all approved". */

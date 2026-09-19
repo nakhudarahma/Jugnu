@@ -213,9 +213,9 @@ export function CaregiverDashboard() {
         }}
       />
 
-      {/* One-time nudge after the very first sign-in. */}
+      {/* One-time nudge after the very first sign-in of this account. */}
       <CompleteProfilePrompt
-        storageKey="jugnu_family_profile_prompt_v1"
+        storageKey={`jugnu_family_profile_prompt_v1_${currentUser.id}`}
         description="Tell Jugnu how you'd like to be addressed and how to reach the family — it makes the whole app feel like yours."
         onGoToSettings={() => navigate('/settings')}
       />

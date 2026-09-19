@@ -198,6 +198,7 @@ const series = (points: [number, number, number, number][]) =>
         avgResponseTimeMs,
         totalDurationSeconds,
         hesitationCount,
+        fatigueRatio: 1.0,
       },
     }
   })
@@ -240,10 +241,7 @@ const seededResidents: FacilityResident[] = [
       { name: 'Routine Sequencing', rounds: '4 of 5' },
       { name: 'Pattern Recall', rounds: '3 of 5' },
     ],
-    memories: [
-      { id: 'a_mem_1', title: "Who's Calling: Rai's voice", description: 'Warm hello recorded by her son Rahul for the recognition game.', game: 'whos_calling', transcript: 'Hello Anita, this is your son Rahul calling from Guwahati to say I love you.', usableInActivities: true },
-      { id: 'a_mem_2', title: 'Remember When: Garden walk', description: 'Talks about the roses she used to grow at home.', game: 'memory_recall', transcript: 'Remember our walk to the garden when we chose the rose plants together?', usableInActivities: true, personId: 'fa_rahul' },
-    ],
+    memories: [],
     family: [
       { id: 'fa_rahul', name: 'Rahul', relationship: 'son', portraitTone: 'sage', photoUrl: '/people/rahul.jpg', voiceNote: { transcript: 'Hello Anita, this is your son Rahul calling from Guwahati.' } },
       { id: 'fa_meera', name: 'Meera', relationship: 'daughter', portraitTone: 'lilac', photoUrl: '/people/meera.jpg' },
@@ -350,10 +348,7 @@ const seededResidents: FacilityResident[] = [
       { name: 'Routine Sequencing', rounds: '2 of 5' },
       { name: 'Pattern Recall', rounds: '1 of 5' },
     ],
-    memories: [
-      { id: 'p_mem_1', title: "Who's Calling: Geeta's voice", description: 'Voice greeting from her daughter for the recognition game.', game: 'whos_calling', transcript: 'Hello Maa, it is your daughter Geeta calling from Imphal.', usableInActivities: true },
-      { id: 'p_mem_2', title: 'Remember When: Imphal fair', description: 'Remembers the annual fair at Imphal and the kambong thabi bought there.', game: 'memory_recall', transcript: 'Remember our trip to the Imphal fair and the kambong thabi we brought home together?', usableInActivities: true, personId: 'fa_geeta' },
-    ],
+    memories: [],
     family: [
       { id: 'fa_geeta', name: 'Geeta', relationship: 'daughter', portraitTone: 'lilac', photoUrl: '/people/geeta.jpg', voiceNote: { transcript: 'Hello Maa, it is Geeta calling from Imphal.' } },
       { id: 'fa_rajkumar', name: 'Rajkumar', relationship: 'husband', portraitTone: 'dusk', photoUrl: '/people/rajkumar.jpg' },

@@ -13,6 +13,7 @@ import { languageLabel } from '@/lib/i18n'
 import { relativeDayLabel, today, weekDates } from '@/lib/date'
 import { allTrends, directionGlyph, domainLabel } from '@/lib/trends'
 import type { LanguageCode, MoodValue, TrendDirection } from '@/types'
+import { useApp } from '@/state/AppContext'
 
 type Filter = 'all' | ResidentStatus
 
@@ -55,6 +56,7 @@ function saveMoods(moods: Record<string, MoodValue>): void {
  */
 export function HealthWorkerScreen() {
   const navigate = useNavigate()
+  const { currentUser } = useApp()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
@@ -207,9 +209,9 @@ export function HealthWorkerScreen() {
         }}
       />
 
-      {/* One-time nudge after the very first sign-in. */}
+      {/* One-time nudge after the very first sign-in of this account. */}
       <CompleteProfilePrompt
-        storageKey="jugnu_hw_profile_prompt_v1"
+        storageKey={currentUser ? `jugnu_hw_profile_prompt_v1_${currentUser.id}` : 'jugnu_hw_profile_prompt_v1'}
         description="Tell Jugnu the facility's name and who's on duty today — it makes check-ins feel like your own."
         onGoToSettings={() => navigate('/healthworker/settings')}
       />

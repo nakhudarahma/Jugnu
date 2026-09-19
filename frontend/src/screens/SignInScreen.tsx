@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { AppUser } from '@/types'
 import { BrandMark } from '@/components/caregiver/CaregiverHeader'
 import { Button } from '@/components/ui/Button'
 import { Field, TextInput } from '@/components/ui/Form'
@@ -36,16 +35,11 @@ function SubtleRings() {
 }
 
 export function SignInScreen() {
-  const { state, dispatch, backendAvailable, api } = useApp()
+  const { state, dispatch } = useApp()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [connecting, setConnecting] = useState(false)
   const [pickingDemo, setPickingDemo] = useState(false)
   const [error, setError] = useState('')
-  void error // will be shown in UI once error display is added
-
-  const primary = state.users.find((u) => u.layer === 1)
 
   const [pickingGoogle, setPickingGoogle] = useState(false)
   const [showCustomInput, setShowCustomInput] = useState(false)
@@ -54,37 +48,40 @@ export function SignInScreen() {
 
   const googleSignIn = () => {
     if (connecting) return
+    setConnecting(true)
+    setError('')
     triggerGoogleSignIn(
-      (credential) => {
+      (profile) => {
         setConnecting(false)
-        try {
-          const payload = JSON.parse(atob(credential.split('.')[1]))
-          const existingUser = state.users.find((u) => u.name.toLowerCase() === payload.name?.toLowerCase())
-          if (existingUser) {
-            dispatch({ type: 'signIn', userId: existingUser.id })
-            navigate(existingUser.layer === 2 ? '/healthworker' : '/')
-          } else {
-            setError("Account not found. Please sign up to create your space.")
-            window.setTimeout(() => navigate('/signup'), 1500)
-          }
-        } catch {
-          if (primary) dispatch({ type: 'signIn', userId: primary.id })
-          navigate('/')
+        const email = profile.email?.toLowerCase()
+        const existingUser =
+          (profile.sub ? state.users.find((u) => u.googleId === profile.sub) : undefined) ||
+          state.users.find((u) => u.googleEmail?.toLowerCase() === email) ||
+          state.users.find((u) => u.name.toLowerCase() === profile.name?.toLowerCase())
+        if (existingUser) {
+          dispatch({ type: 'signIn', userId: existingUser.id })
+          navigate(existingUser.layer === 2 ? '/healthworker' : '/')
+        } else {
+          setError("No Jugnu account found for this Google account — sign up first to create your space.")
         }
       },
-      () => {
+      (reason) => {
         setConnecting(false)
+        if (reason === 'cancelled') return
         setShowCustomInput(false)
         setPickingGoogle(true)
       },
     )
   }
 
-  const selectGoogleAccount = (userType: 'primary' | 'family' | 'worker', name?: string) => {
+  const selectGoogleAccount = (name: string, accountEmail?: string) => {
+    if (connecting) return
     setPickingGoogle(false)
     setConnecting(true)
-    const accountName = name || (userType === 'family' ? 'Rahul' : userType === 'worker' ? 'Anita' : 'Meena Devi')
-    const existingUser = state.users.find((u) => u.name.toLowerCase() === accountName.toLowerCase())
+    const email = accountEmail?.trim().toLowerCase()
+    const existingUser =
+      (email ? state.users.find((u) => u.googleEmail?.toLowerCase() === email) : undefined) ||
+      state.users.find((u) => u.name.toLowerCase() === name.toLowerCase())
 
     window.setTimeout(() => {
       setConnecting(false)
@@ -96,41 +93,8 @@ export function SignInScreen() {
           navigate('/')
         }
       } else {
-        setError("Account not found. Please sign up to create your space.")
-        window.setTimeout(() => navigate('/signup'), 1500)
+        setError("No Jugnu account found for this Google account — sign up first to create your space.")
       }
-    }, 500)
-  }
-
-  const emailSignIn = async () => {
-    if (connecting) return
-    setConnecting(true)
-    setError('')
-    const extractedName = email ? email.split('@')[0].replace(/[._-]/g, ' ') : 'Caregiver'
-    const formattedName = extractedName.charAt(0).toUpperCase() + extractedName.slice(1)
-
-    if (backendAvailable) {
-      try {
-        await api.login(email, password)
-        setConnecting(false)
-        return
-      } catch (err: any) {
-        setError(err.message || 'Login failed. Falling back to demo mode.')
-      }
-    }
-
-    const userId = `u_${Date.now()}`
-    const newUser: Partial<AppUser> = {
-      name: formattedName,
-      relationship: 'Primary Caregiver',
-      layer: 1,
-    }
-    dispatch({ type: 'signIn', userId, user: newUser })
-    dispatch({ type: 'updatePatient', patch: { displayName: `${formattedName}’s Care` } })
-
-    window.setTimeout(() => {
-      setConnecting(false)
-      navigate('/')
     }, 500)
   }
 
@@ -158,8 +122,6 @@ export function SignInScreen() {
       navigate('/healthworker')
     }, 500)
   }
-
-  const canSubmit = email.trim().includes('@') && password.length > 0
 
   return (
     <div className="flex min-h-[100dvh] bg-cream">
@@ -238,56 +200,11 @@ export function SignInScreen() {
             {connecting ? 'Connecting…' : 'Continue with Google'}
           </button>
 
-          {/* Divider */}
-          <div className="my-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-line" />
-            <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-ink-faint">or</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
-
-          {/* Email form */}
-          <form
-            className="space-y-3.5"
-            onSubmit={(e) => { e.preventDefault(); emailSignIn() }}
-          >
-            <Field label="Email" required>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  inputMode="email"
-                />
-              )}
-            </Field>
-            <Field label="Password" required>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                />
-              )}
-            </Field>
-
-            <div className="pt-1">
-              <Button
-                variant="primary"
-                block
-                type="submit"
-                disabled={!canSubmit || connecting}
-                className="py-3 text-[0.85rem]"
-              >
-                {connecting ? 'Signing in…' : 'Sign in'}
-              </Button>
-            </div>
-          </form>
+          {error && (
+            <p className="mt-2 text-center text-[0.8rem] text-[#b3352e]" role="alert">
+              {error}
+            </p>
+          )}
 
           {/* Divider */}
           <div className="my-4 flex items-center gap-3">
@@ -364,7 +281,7 @@ export function SignInScreen() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (customGoogleName.trim()) selectGoogleAccount('primary', customGoogleName.trim())
+              if (customGoogleName.trim()) selectGoogleAccount(customGoogleName.trim(), customGoogleEmail)
             }}
             className="space-y-3"
           >
@@ -412,52 +329,6 @@ export function SignInScreen() {
               <div className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-glow-900">Use another Google Account</span>
                 <span className="block text-xs text-glow-700">Enter your name & email to create your account</span>
-              </div>
-            </button>
-
-            <div className="relative py-1 text-center">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Or choose preset</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => selectGoogleAccount('primary', 'Meena Devi')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glow-100 font-bold text-glow-700">
-                M
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink truncate">Meena Devi</span>
-                <span className="block text-xs text-ink-faint truncate">meena.caregiver@gmail.com</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectGoogleAccount('family', 'Rahul Sharma')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sage-100 font-bold text-sage-700">
-                R
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink truncate">Rahul Sharma</span>
-                <span className="block text-xs text-ink-faint truncate">rahul.family@gmail.com</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectGoogleAccount('worker', 'Anita Das')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-dusk-100 font-bold text-dusk-700">
-                A
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink truncate">Anita Das (ASHA)</span>
-                <span className="block text-xs text-ink-faint truncate">anita.asha@gov.in</span>
               </div>
             </button>
           </div>

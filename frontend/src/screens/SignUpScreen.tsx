@@ -36,11 +36,11 @@ function SubtleRings() {
 }
 
 export function SignUpScreen() {
-  const { state, dispatch, backendAvailable, api } = useApp()
+  const { state, dispatch } = useApp()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [googleId, setGoogleId] = useState('')
   const [connecting, setConnecting] = useState(false)
   const [pickingMode, setPickingMode] = useState(false)
   const [pickingGoogle, setPickingGoogle] = useState(false)
@@ -50,59 +50,55 @@ export function SignUpScreen() {
 
   const googleSignUp = () => {
     if (connecting) return
+    setConnecting(true)
     triggerGoogleSignIn(
-      (_credential) => {
+      (profile) => {
         setConnecting(false)
+        const normalizedEmail = (profile.email || '').toLowerCase()
+        const existingUser =
+          (profile.sub ? state.users.find((u) => u.googleId === profile.sub) : undefined) ||
+          state.users.find((u) => u.googleEmail?.toLowerCase() === normalizedEmail)
+        // Returning visitor with an already-created space — sign them straight in.
+        if (existingUser) {
+          dispatch({ type: 'signIn', userId: existingUser.id })
+          navigate(existingUser.layer === 2 ? '/healthworker' : '/')
+          return
+        }
+        setName(profile.name || 'Caregiver')
+        setEmail(normalizedEmail || profile.email || '')
+        setGoogleId(profile.sub || '')
         setPickingMode(true)
       },
-      () => {
+      (reason) => {
         setConnecting(false)
+        if (reason === 'cancelled') return
         setShowCustomInput(false)
         setPickingGoogle(true)
       },
     )
   }
 
-  const selectGoogleAccount = (userType: 'primary' | 'family' | 'worker', accountName?: string) => {
+  const selectGoogleAccount = (accountName: string, accountEmail?: string) => {
     setPickingGoogle(false)
     setConnecting(true)
-    const displayName = accountName || (userType === 'family' ? 'Rahul' : userType === 'worker' ? 'Anita' : name.trim() || 'Shubh')
     const userId = `u_${Date.now()}`
     const newUser: Partial<AppUser> = {
-      name: displayName,
-      relationship: userType === 'primary' ? 'Primary Caregiver' : userType === 'family' ? 'Family Member' : 'Health Worker',
-      layer: userType === 'primary' ? 1 : userType === 'family' ? 3 : 2,
+      name: accountName,
+      relationship: 'Primary Caregiver',
+      layer: 1,
+      googleEmail: accountEmail?.trim() || undefined,
     }
     dispatch({ type: 'createNewSpace', userId, user: newUser })
 
     window.setTimeout(() => {
       setConnecting(false)
-      if (userType === 'worker') {
-        navigate('/healthworker')
-      } else {
-        navigate('/')
-      }
+      navigate('/')
     }, 500)
   }
 
-  const askWhichMode = async () => {
-    if (connecting) return
-    if (!name.trim() || !email.trim() || password.length < 6) return
-    setPickingMode(true)
-  }
-
-  const registerWithMode = async (role: 'FAMILY_CAREGIVER' | 'HEALTH_WORKER') => {
+  const registerWithMode = (role: 'FAMILY_CAREGIVER' | 'HEALTH_WORKER') => {
     setPickingMode(false)
     setConnecting(true)
-    if (backendAvailable && name && email && password) {
-      try {
-        await api.register({ name, email, password, role })
-        // Don't navigate here — App.tsx swaps to the signed-in router and
-        // the /signup → / → role-based redirect chain handles it automatically.
-        setConnecting(false)
-        return
-      } catch { /* fall through to offline mode */ }
-    }
 
     // Offline: create a local user. Dispatching sets currentUser, which triggers
     // App.tsx to switch to the signed-in router. The /signup route there immediately
@@ -114,6 +110,8 @@ export function SignUpScreen() {
       name: displayName,
       relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
       layer: isWorker ? 2 : 1,
+      googleId: googleId.trim() || undefined,
+      googleEmail: email.trim() || undefined,
     }
     dispatch({ type: 'createNewSpace', userId, user: newUser })
     setConnecting(false)
@@ -121,8 +119,6 @@ export function SignUpScreen() {
 
   const enterFamilyMode = () => registerWithMode('FAMILY_CAREGIVER')
   const enterWorkerMode = () => registerWithMode('HEALTH_WORKER')
-
-  const canSubmit = name.trim().length > 0 && email.trim().includes('@') && password.length >= 6
 
   return (
     <div className="flex min-h-[100dvh] bg-cream">
@@ -201,69 +197,6 @@ export function SignUpScreen() {
             {connecting ? 'Creating your account…' : 'Continue with Google'}
           </button>
 
-          {/* Divider */}
-          <div className="my-4 flex items-center gap-3">
-            <span className="h-px flex-1 bg-line" />
-            <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-ink-faint">or</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
-
-          {/* Form */}
-          <form
-            className="space-y-3.5"
-            onSubmit={(e) => { e.preventDefault(); askWhichMode() }}
-          >
-            <Field label="Your name" required>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Meena Devi"
-                  autoComplete="name"
-                />
-              )}
-            </Field>
-            <Field label="Email" required>
-              {(id) => (
-                <TextInput
-                  id={id}
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  inputMode="email"
-                />
-              )}
-            </Field>
-            <Field label="Password" required hint="At least 6 characters.">
-              {(id) => (
-                <TextInput
-                  id={id}
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                />
-              )}
-            </Field>
-
-            <div className="pt-1">
-              <Button
-                variant="primary"
-                block
-                type="submit"
-                icon="sparkle"
-                disabled={!canSubmit || connecting}
-                className="py-3 text-[0.85rem]"
-              >
-                {connecting ? 'Creating…' : 'Create my space'}
-              </Button>
-            </div>
-          </form>
-
           <p className="mt-7 text-center text-[0.8rem] text-ink-soft/90">
             Already have an account?{' '}
             <Link to="/login" className="font-semibold text-glow-700 underline-offset-4 transition hover:underline">
@@ -322,7 +255,7 @@ export function SignUpScreen() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (customGoogleName.trim()) selectGoogleAccount('primary', customGoogleName.trim())
+              if (customGoogleName.trim()) selectGoogleAccount(customGoogleName.trim(), customGoogleEmail)
             }}
             className="space-y-3"
           >
@@ -370,52 +303,6 @@ export function SignUpScreen() {
               <div className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-glow-900">Use another Google Account</span>
                 <span className="block text-xs text-glow-700">Enter your name & email to create your space</span>
-              </div>
-            </button>
-
-            <div className="relative py-1 text-center">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Or choose preset</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => selectGoogleAccount('primary', 'Meena Devi')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glow-100 font-bold text-glow-700">
-                M
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink truncate">Meena Devi</span>
-                <span className="block text-xs text-ink-faint truncate">meena.caregiver@gmail.com</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectGoogleAccount('family', 'Rahul Sharma')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sage-100 font-bold text-sage-700">
-                R
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink truncate">Rahul Sharma</span>
-                <span className="block text-xs text-ink-faint truncate">rahul.family@gmail.com</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => selectGoogleAccount('worker', 'Anita Das')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-line bg-paper px-4 py-3 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-dusk-100 font-bold text-dusk-700">
-                A
-              </span>
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink truncate">Anita Das (ASHA)</span>
-                <span className="block text-xs text-ink-faint truncate">anita.asha@gov.in</span>
               </div>
             </button>
           </div>
