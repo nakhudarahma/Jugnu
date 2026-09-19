@@ -128,8 +128,14 @@ export interface PatientProfile {
   portraitTone: Person['portraitTone']
 }
 
+/** Everything an account owns. Each account keeps its own space — none are shared. */
+export type SpaceState = Pick<
+  AppState,
+  'spaceId' | 'patient' | 'users' | 'people' | 'memories' | 'reminders' | 'sessions' | 'moods' | 'invites'
+>
+
 export interface AppState {
-  /** Stable id of the family/care space. The FIRST account creates it; later accounts join it instead of wiping it. */
+  /** Stable id of this account's own space. Never shared between accounts. */
   spaceId?: string
   patient: PatientProfile
   users: AppUser[]

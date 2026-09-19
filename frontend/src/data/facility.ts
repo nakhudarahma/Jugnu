@@ -1,4 +1,4 @@
-import type { LanguageCode, PersonalizationLevel, Person, Reminder, SessionRecord } from '@/types'
+import type { LanguageCode, MoodValue, PersonalizationLevel, Person, Reminder, SessionRecord } from '@/types'
 import { daysAgo } from '@/lib/date'
 import { allTrends, changeSignal } from '@/lib/trends'
 
@@ -203,6 +203,11 @@ const series = (points: [number, number, number, number][]) =>
     }
   })
 
+/**
+ * The demo health-worker account signs itself in as `u_hw_demo_…` and gets this
+ * seeded facility roster, so the demo has residents, trends and reminders to show.
+ * A real (non-demo) worker account still starts completely empty.
+ */
 const seededResidents: FacilityResident[] = [
   {
     id: 'res_anita',
@@ -473,85 +478,73 @@ const seededResidents: FacilityResident[] = [
 ]
 
 /**
- * Residents are kept in a mutable module store so the roster can grow as patients
- * are admitted. The store is hydrated from localStorage so patients added by the
- * worker survive a reload. Screens read through `getResidents()`.
+ * Health-worker data is scoped per account. Each account's roster, mood history,
+ * worker name and facility name live under their own storage keys, so a real,
+ * brand-new account starts completely empty — the only seeded data belongs to the
+ * demo account (`u_hw_demo_…`), which gets the demo roster so the walkthrough has
+ * content. `setActiveWorker()` switches the active account and loads its store;
+ * call it whenever a health worker signs in, is created, or switches.
  */
-const STORAGE_KEY = 'jugnu_hw_residents_v2'
-const DELETED_MEMORY_KEY = 'jugnu_hw_deleted_memories_v1'
 
-function loadDeletedMemoryIds(): Set<string> {
+const ACTIVE_WORKER_KEY = 'jugnu_hw_active_worker_v1'
+
+let activeWorkerId: string | null = (() => {
   try {
-    const raw = localStorage.getItem(DELETED_MEMORY_KEY)
-    return raw ? new Set(JSON.parse(raw) as string[]) : new Set()
+    return localStorage.getItem(ACTIVE_WORKER_KEY)
   } catch {
-    return new Set()
+    return null
   }
-}
+})()
 
-function persistDeletedMemoryIds(): void {
+/** Switch the active health-worker account and load its data (fresh/empty for a new one). */
+export function setActiveWorker(workerId: string | null): void {
+  activeWorkerId = workerId
   try {
-    localStorage.setItem(DELETED_MEMORY_KEY, JSON.stringify([...deletedMemoryIds]))
+    if (workerId) localStorage.setItem(ACTIVE_WORKER_KEY, workerId)
+    else localStorage.removeItem(ACTIVE_WORKER_KEY)
   } catch {
     /* storage unavailable — in-memory only */
   }
+  residentStore = loadResidents()
+  workerName = loadWorkerName()
+  facilityName = loadFacilityName()
 }
 
-const deletedMemoryIds = loadDeletedMemoryIds()
-
-/** Remember that a memory was deliberately removed so seed merges don't bring it back. */
-export function markMemoryDeleted(id: string): void {
-  deletedMemoryIds.add(id)
-  persistDeletedMemoryIds()
-}
+const residentsKey = () => (activeWorkerId ? `jugnu_hw_residents_v3_${activeWorkerId}` : 'jugnu_hw_residents_v3')
+const moodsKey = () => (activeWorkerId ? `jugnu_hw_moods_v3_${activeWorkerId}` : 'jugnu_hw_moods_v3')
+const workerNameKey = () => (activeWorkerId ? `jugnu_hw_worker_name_v2_${activeWorkerId}` : 'jugnu_hw_worker_name_v2')
+const facilityNameKey = () => (activeWorkerId ? `jugnu_hw_facility_name_v2_${activeWorkerId}` : 'jugnu_hw_facility_name_v2')
 
 function loadResidents(): FacilityResident[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(residentsKey())
     if (raw) {
       const parsed = JSON.parse(raw) as FacilityResident[]
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Seed photo URLs added after this store was last saved would otherwise be
-        // lost to older stored data — merge any newly seeded photos back on.
-        const seedById = new Map(seededResidents.map((r) => [r.id, r]))
-        return parsed.map((r) => {
-          const seeded = seedById.get(r.id)
-          const next: FacilityResident = { ...r, invites: r.invites ?? [], family: r.family ?? [], memories: r.memories ?? [] }
-          const staleStatic = next.photoUrl && /^(data:|blob:)/.test(next.photoUrl) === false
-          if (seeded?.photoUrl && (staleStatic || !next.photoUrl)) next.photoUrl = seeded.photoUrl
-          if (seeded?.family) {
-            const seedFamilyById = new Map(seeded.family.map((f) => [f.id, f]))
-            next.family = next.family.map((f) => {
-              const seededMember = seedFamilyById.get(f.id)
-              const staleMember = f.photoUrl && /^(data:|blob:)/.test(f.photoUrl) === false
-              return seededMember?.photoUrl && (staleMember || !f.photoUrl)
-                ? { ...f, photoUrl: seededMember.photoUrl }
-                : f
-            })
-          }
-          // Memories recorded for games used to live only in the seed data — older
-          // stored copies of a resident can be missing them entirely. Re-merge any
-          // seeded memories that are absent so Level-2 games have their content.
-          // A worker's explicit deletion is honoured via the tombstone list, so the
-          // merge never resurrects something the user deliberately removed.
-          if (seeded?.memories?.length) {
-            const storedIds = new Set(next.memories.map((m) => m.id))
-            const missing = seeded.memories.filter((m) => !storedIds.has(m.id) && !deletedMemoryIds.has(m.id))
-            if (missing.length > 0) next.memories = [...missing, ...next.memories]
-          }
-          return next
-        })
+      if (Array.isArray(parsed)) {
+        return parsed.map((r) => ({ ...r, invites: r.invites ?? [], family: r.family ?? [], memories: r.memories ?? [] }))
       }
     }
   } catch {
-    /* stale or unreadable storage — fall back to seeds */
+    /* stale or unreadable storage — start fresh */
   }
-  return [...seededResidents]
+  // The demo health-worker account gets the seeded facility roster so the demo
+  // walkthrough has residents, trends and reminders to show. Any real account
+  // starts completely empty.
+  if (activeWorkerId?.startsWith('u_hw_demo_')) {
+    const seeds = seededResidents.map((r) => ({ ...r, sessions: [...r.sessions], reminders: [...r.reminders], games: [...r.games], notes: [...r.notes], memories: [...r.memories], family: [...r.family], invites: [...r.invites] }))
+    try {
+      localStorage.setItem(residentsKey(), JSON.stringify(seeds))
+    } catch {
+      /* storage unavailable — keep it in memory only */
+    }
+    return seeds
+  }
+  return []
 }
 
 function persistResidents(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(residentStore))
+    localStorage.setItem(residentsKey(), JSON.stringify(residentStore))
   } catch {
     /* storage unavailable — in-memory only */
   }
@@ -562,7 +555,7 @@ export function saveResidents(): void {
   persistResidents()
 }
 
-const residentStore: FacilityResident[] = loadResidents()
+let residentStore: FacilityResident[] = loadResidents()
 
 export function getResidents(): FacilityResident[] {
   return residentStore
@@ -622,6 +615,25 @@ export function deleteResident(id: string): void {
   }
 }
 
+/** Health worker's daily mood history — scoped per account, empty until they check in. */
+export function loadMoods(): Record<string, MoodValue> {
+  try {
+    const raw = localStorage.getItem(moodsKey())
+    if (raw) return JSON.parse(raw) as Record<string, MoodValue>
+  } catch {
+    /* stale or unreadable storage — start fresh */
+  }
+  return {}
+}
+
+export function saveMoods(moods: Record<string, MoodValue>): void {
+  try {
+    localStorage.setItem(moodsKey(), JSON.stringify(moods))
+  } catch {
+    /* storage unavailable — keep in memory only */
+  }
+}
+
 /**
  * Worker PIN that unlocks the locked patient session back to the roster.
  * Kept in a small module store so the worker settings screen can change it
@@ -637,9 +649,15 @@ export function setWorkerPin(pin: string): void {
   workerPin = pin
 }
 
-const WORKER_NAME_KEY = 'jugnu_hw_worker_name_v1'
+function loadWorkerName(): string {
+  try {
+    return localStorage.getItem(workerNameKey()) ?? ''
+  } catch {
+    return ''
+  }
+}
 
-let workerName = localStorage.getItem(WORKER_NAME_KEY) ?? ''
+let workerName = loadWorkerName()
 
 export function getWorkerName(): string {
   return workerName
@@ -648,29 +666,31 @@ export function getWorkerName(): string {
 export function setWorkerName(name: string): void {
   workerName = name.trim()
   try {
-    localStorage.setItem(WORKER_NAME_KEY, workerName)
+    localStorage.setItem(workerNameKey(), workerName)
   } catch {
     /* storage unavailable — keep it in memory only */
   }
 }
 
-const FACILITY_NAME_KEY = 'jugnu_hw_facility_name_v1'
+function loadFacilityName(): string {
+  try {
+    return localStorage.getItem(facilityNameKey()) ?? ''
+  } catch {
+    return ''
+  }
+}
 
-const DEFAULT_FACILITY_NAME = 'Seva Niketan Senior Home, Guwahati'
-
-let facilityName = localStorage.getItem(FACILITY_NAME_KEY) ?? DEFAULT_FACILITY_NAME
+let facilityName = loadFacilityName()
 
 export function getFacilityName(): string {
   return facilityName
 }
 
 export function setFacilityName(name: string): void {
-  facilityName = name.trim() || DEFAULT_FACILITY_NAME
+  facilityName = name.trim()
   try {
-    localStorage.setItem(FACILITY_NAME_KEY, facilityName)
+    localStorage.setItem(facilityNameKey(), facilityName)
   } catch {
     /* storage unavailable — keep it in memory only */
   }
 }
-
-export const FACILITY_NAME = getFacilityName()

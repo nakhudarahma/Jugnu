@@ -1,4 +1,4 @@
-import type { AppState, AppUser, Memory, MoodEntry, MoodValue, PatientProfile, Person, Reminder, SessionRecord } from '@/types'
+import type { AppState, AppUser, Memory, MoodEntry, MoodValue, PatientProfile, Person, Reminder, SessionRecord, SpaceState } from '@/types'
 import { today } from '@/lib/date'
 import { uid } from '@/lib/id'
 import { seedState } from '@/data/seed'
@@ -25,6 +25,54 @@ export type Action =
   | { type: 'revokeInvite'; id: string }
   | { type: 'resetDemo' }
   | { type: 'createNewSpace'; userId: string; user?: Partial<AppUser> }
+  | { type: 'restoreSpace'; userId: string; user?: Partial<AppUser>; space: SpaceState }
+
+function buildUser(userId: string, user?: Partial<AppUser> | null): AppUser {
+  return {
+    id: userId,
+    name: user?.name || 'Caregiver',
+    relationship: user?.relationship || 'Primary Caregiver',
+    layer: user?.layer ?? 1,
+    portraitTone: 'amber',
+    canSeeTrends: true,
+    ...user,
+  }
+}
+
+/**
+ * A brand-new space: blank patient profile and empty history. Every account gets
+ * its own fresh space — accounts never share a local space.
+ */
+function blankSpace(state: AppState, userId: string, user?: Partial<AppUser> | null): AppState {
+  const patient: PatientProfile = {
+    id: uid('pa'),
+    name: 'My Loved One',
+    displayName: `${user?.name ?? 'Caregiver'}’s Care`,
+    age: 70,
+    relationshipToCaregiver: 'Family',
+    region: 'India',
+    language: 'hi',
+    personalizationLevel: 1,
+    morningRoutine: ['wake', 'brush', 'tea', 'medicine', 'breakfast'],
+    voiceEnabled: true,
+    speechRate: 0.85,
+    portraitTone: 'amber',
+  }
+  return {
+    ...state,
+    spaceId: uid('sp'),
+    patient,
+    users: [buildUser(userId, user)],
+    currentUserId: userId,
+    people: [],
+    memories: [],
+    reminders: [],
+    sessions: [],
+    moods: [],
+    invites: [],
+    pendingMoodCheckIn: false,
+  }
+}
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -35,16 +83,7 @@ export function reducer(state: AppState, action: Action): AppState {
         if (existing) {
           users = users.map((u) => (u.id === action.userId ? { ...u, ...action.user } : u))
         } else {
-          const newUser: AppUser = {
-            id: action.userId,
-            name: action.user.name || 'Caregiver',
-            relationship: action.user.relationship || 'Primary Caregiver',
-            layer: action.user.layer ?? 1,
-            portraitTone: 'amber',
-            canSeeTrends: true,
-            ...action.user,
-          }
-          users.push(newUser)
+          users.push(buildUser(action.userId, action.user))
         }
       }
       return { ...state, users, currentUserId: action.userId }
@@ -140,45 +179,24 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...seedState, currentUserId: state.currentUserId }
 
     case 'createNewSpace': {
-      const newUser: AppUser = {
-        id: action.userId,
-        name: action.user?.name || 'Caregiver',
-        relationship: action.user?.relationship || 'Primary Caregiver',
-        layer: action.user?.layer ?? 1,
-        portraitTone: 'amber',
-        canSeeTrends: true,
-        ...action.user,
-      }
-      const freshSpace = !state.spaceId
-      const freshPatient: PatientProfile = {
-        id: uid('p'),
-        name: 'My Loved One',
-        displayName: `${newUser.name}’s Care`,
-        age: 70,
-        relationshipToCaregiver: 'Family',
-        region: 'India',
-        language: 'hi',
-        personalizationLevel: 1,
-        morningRoutine: ['wake', 'brush', 'tea', 'medicine', 'breakfast'],
-        voiceEnabled: true,
-        speechRate: 0.85,
-        portraitTone: 'amber',
-      }
+      // Every new account gets its own blank space. Accounts never share one.
+      return blankSpace(state, action.userId, action.user)
+    }
+
+    case 'restoreSpace': {
+      // Returning account: adopt their own saved space, never someone else's.
       return {
         ...state,
-        spaceId: state.spaceId || uid('sp'),
-        // The first account creates the space; later accounts join the existing
-        // space — the patient profile, memories, circle and routines are shared,
-        // so signing up a second account must never wipe the first user's data.
-        patient: freshSpace ? freshPatient : state.patient,
-        users: [...state.users.filter((u) => u.id !== newUser.id), newUser],
+        spaceId: action.space.spaceId,
+        patient: action.space.patient,
+        users: action.space.users,
         currentUserId: action.userId,
-        people: freshSpace ? [] : state.people,
-        memories: freshSpace ? [] : state.memories,
-        reminders: freshSpace ? [] : state.reminders,
-        sessions: freshSpace ? [] : state.sessions,
-        moods: freshSpace ? [] : state.moods,
-        invites: freshSpace ? [] : state.invites,
+        people: action.space.people,
+        memories: action.space.memories,
+        reminders: action.space.reminders,
+        sessions: action.space.sessions,
+        moods: action.space.moods,
+        invites: action.space.invites,
         pendingMoodCheckIn: false,
       }
     }

@@ -34,7 +34,7 @@ export function SessionScreen() {
       engine.close()
       void api.recordSession(patient.id, searchParams.get('game') ?? 'general')
       const user = state.users.find((u) => u.id === userId)
-      dispatch({ type: 'signIn', userId })
+      api.switchUser(userId)
       // The check-in belongs to the moment a caregiver is really back with the device,
       // and only once per day — not after every single game.
       const checkedInToday = user ? state.moods.some((m) => m.userId === user.id && m.date === today()) : false

@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
 import { ApiError, setTokens } from '@/lib/api'
 import { triggerGoogleSignIn } from '@/lib/googleAuth'
+import { setActiveWorker } from '@/data/facility'
 import { useApp } from '@/state/AppContext'
 
 function GoogleMark() {
@@ -52,17 +53,13 @@ export function SignInScreen() {
             const res = await api.googleLogin(accessToken, { createIfMissing: false })
             setTokens(res.accessToken, res.refreshToken)
             const isWorker = res.user.role === 'HEALTH_WORKER'
-            dispatch({
-              type: 'signIn',
-              userId: res.user.id,
-              user: {
-                name: res.user.name,
-                relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
-                layer: isWorker ? 2 : 1,
-                googleId: profile.sub,
-                googleEmail: profile.email?.toLowerCase(),
-                canSeeTrends: true,
-              },
+            api.activateUser(res.user.id, {
+              name: res.user.name,
+              relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+              layer: isWorker ? 2 : 1,
+              googleId: profile.sub,
+              googleEmail: profile.email?.toLowerCase(),
+              canSeeTrends: true,
             })
             navigate(isWorker ? '/healthworker' : '/')
           } catch (err) {
@@ -85,7 +82,7 @@ export function SignInScreen() {
           state.users.find((u) => u.googleEmail?.toLowerCase() === email) ||
           state.users.find((u) => u.name.toLowerCase() === profile.name?.toLowerCase())
         if (existingUser) {
-          dispatch({ type: 'signIn', userId: existingUser.id })
+          api.switchUser(existingUser.id)
           navigate(existingUser.layer === 2 ? '/healthworker' : '/')
         } else {
           setError("No Jugnu account found for this Google account — sign up first to create your space.")
@@ -117,6 +114,7 @@ export function SignInScreen() {
     dispatch({ type: 'resetDemo' })
     // Sign in as a layer-2 health worker so the signed-in routes are accessible
     const hwUserId = `u_hw_demo_${Date.now()}`
+    setActiveWorker(hwUserId)
     dispatch({ type: 'signIn', userId: hwUserId, user: { name: 'Anita', relationship: 'Health Worker', layer: 2, portraitTone: 'dusk', canSeeTrends: true } })
     window.setTimeout(() => {
       setConnecting(false)

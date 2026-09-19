@@ -149,7 +149,7 @@ export function CaregiverDashboard() {
         can={can}
         onOpenSection={openSection}
         onSwitchUser={(userId) => {
-          dispatch({ type: 'signIn', userId })
+          api.switchUser(userId)
           navigate(state.users.find((u) => u.id === userId)?.layer === 3 ? '/family' : '/')
         }}
         onSignOut={() => dispatch({ type: 'signOut' })}

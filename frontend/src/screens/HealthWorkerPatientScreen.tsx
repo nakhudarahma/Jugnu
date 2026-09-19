@@ -8,7 +8,7 @@ import { Icon, type IconName } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
 import { Portrait } from '@/components/ui/Portrait'
 import type { ResidentStatus } from '@/data/facility'
-import { attendance7, deleteResident, getResidents, getWorkerPin, levelBlurb, markMemoryDeleted, saveResidents, signalFor, statusFor, statusLabel, suggestedAction, type FacilityFamilyMember, type FacilityInvite, type FacilityMemory, type MemoryGame } from '@/data/facility'
+import { attendance7, deleteResident, getResidents, getWorkerPin, levelBlurb, saveResidents, signalFor, statusFor, statusLabel, suggestedAction, type FacilityFamilyMember, type FacilityInvite, type FacilityMemory, type MemoryGame } from '@/data/facility'
 import { relationshipWord } from '@/lib/lexicon'
 import { timeLabel } from '@/lib/date'
 import { voice } from '@/lib/voice'
@@ -307,7 +307,6 @@ export function HealthWorkerPatientScreen() {
 
   const deleteMemory = () => {
     if (confirmDeleteMemory && resident) {
-      markMemoryDeleted(confirmDeleteMemory.id)
       resident.memories = resident.memories.filter((m) => m.id !== confirmDeleteMemory.id)
       setMemories([...resident.memories])
       saveResidents()

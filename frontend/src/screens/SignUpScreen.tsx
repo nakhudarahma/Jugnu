@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ApiError, setTokens } from '@/lib/api'
 import { triggerGoogleSignIn } from '@/lib/googleAuth'
 import { useApp } from '@/state/AppContext'
+import { setActiveWorker } from '@/data/facility'
 
 function GoogleMark() {
   return (
@@ -60,7 +61,7 @@ export function SignUpScreen() {
           setPickingMode(true)
         }
         const signInExisting = (userId: string, layer: number) => {
-          dispatch({ type: 'signIn', userId })
+          api.switchUser(userId)
           navigate(layer === 2 ? '/healthworker' : '/')
         }
 
@@ -70,17 +71,13 @@ export function SignUpScreen() {
             .then((res) => {
               setTokens(res.accessToken, res.refreshToken)
               const isWorker = res.user.role === 'HEALTH_WORKER'
-              dispatch({
-                type: 'signIn',
-                userId: res.user.id,
-                user: {
-                  name: res.user.name,
-                  relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
-                  layer: isWorker ? 2 : 1,
-                  googleId: profile.sub,
-                  googleEmail: profile.email?.toLowerCase(),
-                  canSeeTrends: true,
-                },
+              api.activateUser(res.user.id, {
+                name: res.user.name,
+                relationship: isWorker ? 'Health Worker' : 'Primary Caregiver',
+                layer: isWorker ? 2 : 1,
+                googleId: profile.sub,
+                googleEmail: profile.email?.toLowerCase(),
+                canSeeTrends: true,
               })
               navigate(isWorker ? '/healthworker' : '/')
             })
@@ -127,6 +124,7 @@ export function SignUpScreen() {
       api.googleLogin(googleAccessToken, { role, createIfMissing: true })
         .then((res) => {
           setTokens(res.accessToken, res.refreshToken)
+          setActiveWorker(res.user.id)
           const isWorker = res.user.role === 'HEALTH_WORKER'
           dispatch({
             type: 'createNewSpace',
@@ -150,6 +148,7 @@ export function SignUpScreen() {
     }
 
     const userId = `u_${Date.now()}`
+    setActiveWorker(userId)
     const isWorker = role === 'HEALTH_WORKER'
     const displayName = name.trim() || 'Caregiver'
     const newUser: Partial<AppUser> = {

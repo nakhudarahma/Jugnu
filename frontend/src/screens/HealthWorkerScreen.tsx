@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Field, Select, TextInput } from '@/components/ui/Form'
 import { Portrait } from '@/components/ui/Portrait'
 import type { FacilityResident, ResidentStatus } from '@/data/facility'
-import { addResident, attendance7, getFacilityName, getResidents, getWorkerName, priorityRoster, signalFor, statusFor, statusLabel, weeklyCompletion } from '@/data/facility'
+import { addResident, attendance7, getFacilityName, getResidents, getWorkerName, loadMoods, priorityRoster, saveMoods, signalFor, statusFor, statusLabel, weeklyCompletion } from '@/data/facility'
 import { languageLabel } from '@/lib/i18n'
 import { relativeDayLabel, today, weekDates } from '@/lib/date'
 import { allTrends, directionGlyph, domainLabel } from '@/lib/trends'
@@ -17,37 +17,7 @@ import { useApp } from '@/state/AppContext'
 
 type Filter = 'all' | ResidentStatus
 
-const HW_MOOD_KEY = 'jugnu_hw_moods_v2'
-
 const moodFace: Record<MoodValue, string> = { good: '😊', ok: '😐', low: '😞' }
-
-const seedMoodCycle: MoodValue[] = ['good', 'ok', 'good', 'good', 'ok', 'low']
-
-/** Demo week: filled check-ins for every past day, so a fresh install starts full. */
-function seedMoods(): Record<string, MoodValue> {
-  const seeded: Record<string, MoodValue> = {}
-  weekDates().forEach((date, i) => {
-    if (date < today()) seeded[date] = seedMoodCycle[i % seedMoodCycle.length]
-  })
-  return seeded
-}
-
-function loadMoods(): Record<string, MoodValue> {
-  try {
-    const raw = localStorage.getItem(HW_MOOD_KEY)
-    return raw ? (JSON.parse(raw) as Record<string, MoodValue>) : seedMoods()
-  } catch {
-    return seedMoods()
-  }
-}
-
-function saveMoods(moods: Record<string, MoodValue>): void {
-  try {
-    localStorage.setItem(HW_MOOD_KEY, JSON.stringify(moods))
-  } catch {
-    /* storage unavailable — keep in memory only */
-  }
-}
 
 /**
  * Health Worker Mode — Centralized Care. The whole facility on one calm screen:
@@ -114,7 +84,7 @@ export function HealthWorkerScreen() {
           <div className="flex min-w-0 items-center gap-3">
             <img src="/logoo.png" alt="Jugnu" className="h-12 w-12 shrink-0 sm:h-14 sm:w-14" style={{ objectFit: 'contain' }} />
             <div className="min-w-0">
-              <p className="label-eyebrow truncate">{getFacilityName()}</p>
+              <p className="label-eyebrow truncate">{getFacilityName() || 'My Facility'}</p>
               <h1 className="mt-0.5 truncate font-display text-[1.35rem] leading-snug text-ink sm:text-[1.6rem]">
                 Today’s Patient Check-in
               </h1>

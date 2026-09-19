@@ -276,7 +276,7 @@ export function HealthWorkerSettingsScreen() {
 
         {/* ── Footer ──────────────────────────────────────────────── */}
         <PermissionNote>
-          Centralized care for {getFacilityName()}. Priorities come from missed sessions and gentle flags — never a
+          Centralized care for {getFacilityName() || 'your facility'}. Priorities come from missed sessions and gentle flags — never a
           diagnosis.
         </PermissionNote>
 

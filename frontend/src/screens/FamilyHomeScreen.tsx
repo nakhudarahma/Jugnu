@@ -20,7 +20,7 @@ import { useApp } from '@/state/AppContext'
  */
 export function FamilyHomeScreen() {
   const navigate = useNavigate()
-  const { state, dispatch, currentUser, can } = useApp()
+  const { state, dispatch, currentUser, can, api } = useApp()
   const [profileOpen, setProfileOpen] = useState(false)
 
   if (!currentUser) return null
@@ -294,7 +294,7 @@ export function FamilyHomeScreen() {
         can={can}
         onOpenSection={() => navigate('/settings')}
         onSwitchUser={(userId) => {
-          dispatch({ type: 'signIn', userId })
+          api.switchUser(userId)
           navigate(state.users.find((u) => u.id === userId)?.layer === 3 ? '/family' : '/')
         }}
         onSignOut={() => dispatch({ type: 'signOut' })}
