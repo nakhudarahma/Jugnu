@@ -55,10 +55,22 @@ export function SignInScreen() {
   const googleSignIn = () => {
     if (connecting) return
     triggerGoogleSignIn(
-      (_credential) => {
+      (credential) => {
         setConnecting(false)
-        if (primary) dispatch({ type: 'signIn', userId: primary.id })
-        navigate('/')
+        try {
+          const payload = JSON.parse(atob(credential.split('.')[1]))
+          const existingUser = state.users.find((u) => u.name.toLowerCase() === payload.name?.toLowerCase())
+          if (existingUser) {
+            dispatch({ type: 'signIn', userId: existingUser.id })
+            navigate(existingUser.layer === 2 ? '/healthworker' : '/')
+          } else {
+            setError("Account not found. Please sign up to create your space.")
+            window.setTimeout(() => navigate('/signup'), 1500)
+          }
+        } catch {
+          if (primary) dispatch({ type: 'signIn', userId: primary.id })
+          navigate('/')
+        }
       },
       () => {
         setConnecting(false)
@@ -71,22 +83,21 @@ export function SignInScreen() {
   const selectGoogleAccount = (userType: 'primary' | 'family' | 'worker', name?: string) => {
     setPickingGoogle(false)
     setConnecting(true)
-    const accountName = name || (userType === 'family' ? 'Rahul' : userType === 'worker' ? 'Anita' : 'Shubh')
-    const userId = `u_${Date.now()}`
-    const newUser: Partial<AppUser> = {
-      name: accountName,
-      relationship: userType === 'primary' ? 'Primary Caregiver' : userType === 'family' ? 'Family Member' : 'Health Worker',
-      layer: userType === 'primary' ? 1 : userType === 'family' ? 3 : 2,
-    }
-    dispatch({ type: 'signIn', userId, user: newUser })
-    dispatch({ type: 'updatePatient', patch: { displayName: `${accountName}’s Care` } })
+    const accountName = name || (userType === 'family' ? 'Rahul' : userType === 'worker' ? 'Anita' : 'Meena Devi')
+    const existingUser = state.users.find((u) => u.name.toLowerCase() === accountName.toLowerCase())
 
     window.setTimeout(() => {
       setConnecting(false)
-      if (userType === 'worker') {
-        navigate('/healthworker')
+      if (existingUser) {
+        dispatch({ type: 'signIn', userId: existingUser.id })
+        if (existingUser.layer === 2) {
+          navigate('/healthworker')
+        } else {
+          navigate('/')
+        }
       } else {
-        navigate('/')
+        setError("Account not found. Please sign up to create your space.")
+        window.setTimeout(() => navigate('/signup'), 1500)
       }
     }, 500)
   }

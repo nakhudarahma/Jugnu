@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SectionCard } from '@/components/ui/Card'
 import { getFacilityName, getWorkerName, getWorkerPin, setFacilityName, setWorkerName, setWorkerPin } from '@/data/facility'
 import { voice } from '@/lib/voice'
+import { useApp } from '@/state/AppContext'
 
 function useVoiceSample() {
   const speak = (rate: number) =>
@@ -24,6 +25,7 @@ function useVoiceSample() {
  */
 export function HealthWorkerSettingsScreen() {
   const navigate = useNavigate()
+  const { dispatch } = useApp()
   const speakSample = useVoiceSample()
 
   const [voiceEnabled, setVoiceEnabled] = useState(true)
@@ -279,7 +281,10 @@ export function HealthWorkerSettingsScreen() {
         </PermissionNote>
 
         <div className="pb-4">
-          <Button variant="secondary" icon="logout" block onClick={() => navigate('/login')}>
+          <Button variant="secondary" icon="logout" block onClick={() => {
+            dispatch({ type: 'signOut' })
+            navigate('/login')
+          }}>
             Sign out
           </Button>
         </div>

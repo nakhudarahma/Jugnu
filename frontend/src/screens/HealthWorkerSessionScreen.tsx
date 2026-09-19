@@ -157,7 +157,14 @@ function useFacilitySessionEngine(resident: FacilityResident): FacilityEngine {
     const line = t(lang, 'completion')
     setPromptText(line)
     sayText(line, () => sayText(t(lang, 'completionSub')))
-  }, [lang, sayText])
+    
+    // Update the resident state to mark session as done and set the time
+    const now = new Date()
+    resident.todaySession = 'done'
+    resident.lastSessionDate = now.toISOString().split('T')[0]
+    resident.lastSessionTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    import('@/data/facility').then((m) => m.saveResidents())
+  }, [lang, sayText, resident])
 
   const advance = useCallback(() => {
     setConfirmStep(null)

@@ -180,15 +180,27 @@ export function priorityRoster(residents: FacilityResident[]): FacilityResident[
 }
 
 const series = (points: [number, number, number, number][]) =>
-  points.map(([day, memory, attention, recognition], i) => ({
-    id: `s_${day}`,
-    date: daysAgo(day),
-    completed: true,
-    startedByUserId: 'hw_ward',
-    domainScores: { memory, attention, recognition },
-    activityCount: 3,
-    gentleCorrections: i % 3 === 0 ? 1 : 0,
-  }))
+  points.map(([day, memory, attention, recognition], i) => {
+    // Generate deterministic variation based on the day and scores
+    const avgResponseTimeMs = Math.max(1500, 4500 + day * 100 - memory * 10)
+    const totalDurationSeconds = Math.max(120, 300 + day * 5 - Math.floor(attention / 2))
+    const hesitationCount = i % 4 === 0 ? 2 : i % 3 === 0 ? 1 : 0
+
+    return {
+      id: `s_${day}`,
+      date: daysAgo(day),
+      completed: true,
+      startedByUserId: 'hw_ward',
+      domainScores: { memory, attention, recognition },
+      activityCount: 3,
+      gentleCorrections: i % 3 === 0 ? 1 : 0,
+      timeMetrics: {
+        avgResponseTimeMs,
+        totalDurationSeconds,
+        hesitationCount,
+      },
+    }
+  })
 
 const seededResidents: FacilityResident[] = [
   {
@@ -224,9 +236,9 @@ const seededResidents: FacilityResident[] = [
       'Prefers being addressed as “Anita Devi” by staff.',
     ],
     games: [
-      { name: 'Who’s Calling?', rounds: '5 of 5' },
-      { name: 'Remember When', rounds: '4 of 5' },
-      { name: 'My Daily Routine', rounds: '3 of 5' },
+      { name: 'Object Match', rounds: '5 of 5' },
+      { name: 'Routine Sequencing', rounds: '4 of 5' },
+      { name: 'Pattern Recall', rounds: '3 of 5' },
     ],
     memories: [
       { id: 'a_mem_1', title: "Who's Calling: Rai's voice", description: 'Warm hello recorded by her son Rahul for the recognition game.', game: 'whos_calling', transcript: 'Hello Anita, this is your son Rahul calling from Guwahati to say I love you.', usableInActivities: true },
@@ -334,9 +346,9 @@ const seededResidents: FacilityResident[] = [
     reminders: [{ id: 'p_med', title: 'Evening medicine', time: '19:00', repeat: 'daily', priority: 'important', completed: false }],
     notes: ['New resident — admitted last week. Still getting used to the routine.'],
     games: [
-      { name: "Who's Calling?", rounds: '3 of 5' },
-      { name: 'Remember When', rounds: '2 of 5' },
-      { name: 'My Daily Routine', rounds: '1 of 5' },
+      { name: 'Object Match', rounds: '3 of 5' },
+      { name: 'Routine Sequencing', rounds: '2 of 5' },
+      { name: 'Pattern Recall', rounds: '1 of 5' },
     ],
     memories: [
       { id: 'p_mem_1', title: "Who's Calling: Geeta's voice", description: 'Voice greeting from her daughter for the recognition game.', game: 'whos_calling', transcript: 'Hello Maa, it is your daughter Geeta calling from Imphal.', usableInActivities: true },
@@ -470,7 +482,7 @@ const seededResidents: FacilityResident[] = [
  * are admitted. The store is hydrated from localStorage so patients added by the
  * worker survive a reload. Screens read through `getResidents()`.
  */
-const STORAGE_KEY = 'jugnu_hw_residents_v1'
+const STORAGE_KEY = 'jugnu_hw_residents_v2'
 const DELETED_MEMORY_KEY = 'jugnu_hw_deleted_memories_v1'
 
 function loadDeletedMemoryIds(): Set<string> {

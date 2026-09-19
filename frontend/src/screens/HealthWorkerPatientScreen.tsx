@@ -14,6 +14,7 @@ import { timeLabel } from '@/lib/date'
 import { voice } from '@/lib/voice'
 import { allTrends, directionGlyph, directionLabel, domainLabel } from '@/lib/trends'
 import type { Reminder, ReminderRepeat, PersonalizationLevel, LanguageCode } from '@/types'
+import { SessionPaceAnalysis } from '@/components/caregiver/SessionPaceAnalysis'
 
 const toneMap: Record<ResidentStatus, { chip: string; banner: string; text: string }> = {
   red: { chip: 'bg-clay-100 text-clay-700', banner: 'border-clay-200 bg-clay-50/60', text: 'text-clay-800' },
@@ -763,6 +764,9 @@ export function HealthWorkerPatientScreen() {
             )}
           </div>
         </section>
+
+        {/* Session Pace Analysis */}
+        <SessionPaceAnalysis sessions={resident.sessions} />
 
         {/* Cognitive-domain trends */}
         <section className="card card-pad">
