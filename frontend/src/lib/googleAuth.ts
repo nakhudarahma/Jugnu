@@ -78,7 +78,10 @@ export function triggerGoogleSignIn(
             return res.json()
           })
           .then((profile: GoogleProfile) => settle(() => onSuccess({ profile, accessToken })))
-          .catch(() => settle(() => onError?.('network')))
+          .catch((err) => {
+            console.error('[Jugnu] Google userinfo fetch failed:', err)
+            settle(() => onError?.('network'))
+          })
       },
       error_callback: (error: { error?: string; error_description?: string }) => {
         console.error('[Jugnu] Google OAuth error_callback:', error)
