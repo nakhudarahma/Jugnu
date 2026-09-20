@@ -114,7 +114,7 @@ export function FamilyHomeScreen() {
 
         {/* View-Only Dashboard: Weekly Family Digest */}
         <section className="card card-pad bg-paper space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
             <div>
               <p className="label-eyebrow">Weekly Family Digest</p>
               <h2 className="font-display text-lg text-ink">{patientName}’s Week at a Glance</h2>

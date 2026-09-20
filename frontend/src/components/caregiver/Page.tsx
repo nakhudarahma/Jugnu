@@ -6,10 +6,10 @@ import { AppRail } from './AppRail'
 /** Shared page frame: persistent teal rail + one comfortable column with breathing room. */
 export function Page({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className="app-surface min-h-[100dvh]">
+    <div className="app-surface min-h-[100dvh] overflow-x-clip">
       <div className="mx-auto flex w-full max-w-[1900px]">
         <AppRail />
-        <div className={`min-w-0 flex-1 px-4 pb-16 sm:px-6 lg:px-8 xl:px-10 ${className}`}>{children}</div>
+        <div className={`min-w-0 flex-1 px-4 pb-24 sm:px-6 lg:px-8 lg:pb-16 xl:px-10 ${className}`}>{children}</div>
       </div>
     </div>
   )
@@ -30,7 +30,7 @@ export function ScreenHeader({ title, subtitle, action, backTo = '/' }: ScreenHe
   const navigate = useNavigate()
 
   return (
-    <header className="flex items-start justify-between gap-4 pb-5 pt-6">
+    <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 pb-5 pt-6">
       <div className="flex min-w-0 items-start gap-3">
         <button
           type="button"

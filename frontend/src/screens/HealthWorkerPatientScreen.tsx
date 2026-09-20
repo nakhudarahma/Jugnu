@@ -709,14 +709,14 @@ export function HealthWorkerPatientScreen() {
                 <p className="mt-2 max-w-md text-sm text-ink-soft">
                   A gentle set of {games.length} activities. You can start the full session or select an individual game below.
                 </p>
-                <div className="mt-5 flex flex-wrap gap-3">
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                   <button
                     type="button"
                     onClick={() => goToSession()}
-                    className="flex flex-1 min-w-[200px] items-center justify-center gap-3 rounded-[22px] bg-glow-500 px-6 py-4 text-base font-semibold text-white shadow-glow transition duration-200 ease-calm hover:bg-glow-600 active:scale-[0.995] sm:text-lg"
+                    className="flex w-full items-center justify-center gap-3 rounded-[22px] bg-glow-500 px-4 py-4 text-base font-semibold text-white shadow-glow transition duration-200 ease-calm hover:bg-glow-600 active:scale-[0.995] sm:w-auto sm:min-w-[200px] sm:flex-1 sm:px-6 sm:text-lg"
                   >
-                    <Icon name="play" size={20} />
-                    Start Full Session ({games.length} Games)
+                    <Icon name="play" size={20} className="shrink-0" />
+                    <span className="min-w-0">Start Full Session ({games.length} Games)</span>
                   </button>
                   <Button variant="secondary" icon="sparkle" onClick={() => setShowGamePicker((prev) => !prev)} className="px-4 py-4 text-sm">
                     {showGamePicker ? 'Hide Options' : 'Select Game'}
@@ -1033,7 +1033,7 @@ export function HealthWorkerPatientScreen() {
                         )}
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
                       <button
                         type="button"
                         aria-label={`Edit ${reminder.title}`}

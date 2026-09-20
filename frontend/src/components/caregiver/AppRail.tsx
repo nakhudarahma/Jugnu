@@ -55,11 +55,49 @@ export function AppRail() {
     )
   }
 
+  const items: RailItem[] = [
+    { to: home, icon: 'home', label: 'Home' } satisfies RailItem,
+    ...(worker ? [{ to: '/healthworker/patients', icon: 'users', label: 'Patients' } satisfies RailItem] : familyItems),
+    settingsItem,
+  ]
+
+  // Mobile: keep it to a fixed bottom bar so every screen gets the full width.
+  const mobileLink = (item: RailItem) => {
+    const active = pathname === item.to
+    return (
+      <Link
+        key={item.label}
+        to={item.to}
+        aria-current={active ? 'page' : undefined}
+        className={`flex min-w-0 flex-1 flex-col items-center justify-center px-0.5 py-1 transition duration-200 ease-calm ${
+          active ? 'text-[#0B6B5F]' : 'text-[#2F7E72] hover:text-[#0A5B51]'
+        }`}
+      >
+        <div className="flex h-6 w-full items-center justify-center">
+          <Icon name={item.icon} size={20} className={`shrink-0 ${active ? 'text-[#E1A500]' : ''}`} />
+        </div>
+        <div className="flex h-6 w-full items-center justify-center">
+          <span className="max-w-full text-center text-[10px] font-semibold leading-[1.1]">{item.label}</span>
+        </div>
+      </Link>
+    )
+  }
+
   return (
-    <nav
-      aria-label="Primary"
-      className="sticky top-0 z-30 flex h-[100dvh] w-[80px] shrink-0 flex-col items-center gap-1 border-r border-[#B5D9CF] bg-gradient-to-b from-[#C5E7DD] to-[#A5D7CA] px-2 py-5 lg:w-60 lg:items-stretch"
-    >
+    <>
+      {/* Phone rail: fixed tab bar along the bottom */}
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-center rounded-t-3xl border-t border-[#B5D9CF]/80 bg-gradient-to-b from-[#C5E7DD] to-[#A5D7CA] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
+        {items.map((item) => mobileLink(item))}
+      </nav>
+
+      {/* Desktop rail: exactly as before on laptop */}
+      <nav
+        aria-label="Primary"
+        className="sticky top-0 z-30 hidden h-[100dvh] w-[80px] shrink-0 flex-col items-center gap-1 border-r border-[#B5D9CF] bg-gradient-to-b from-[#C5E7DD] to-[#A5D7CA] px-2 py-5 lg:flex lg:w-60 lg:items-stretch"
+      >
       {/* Brand */}
       <div className="flex items-center justify-center gap-2 lg:justify-start lg:px-2">
         <img src="/logoo.png" alt="Jugnu" className="h-8 w-8 object-contain" />
@@ -84,6 +122,7 @@ export function AppRail() {
           <p className="mt-0.5 text-[11px] text-[#3D8478]">{layerLabel[currentUser.layer ?? 1]}</p>
         </div>
       </div>
-    </nav>
+      </nav>
+    </>
   )
 }

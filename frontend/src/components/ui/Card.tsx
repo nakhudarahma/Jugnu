@@ -19,12 +19,12 @@ export function SectionCard({ eyebrow, title, action, children, className = '', 
   const body = (
     <>
       {(eyebrow || title || action) && (
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
+          <div className="min-w-0">
             {eyebrow && <p className="label-eyebrow">{eyebrow}</p>}
             {title && <h2 className="heading-card mt-1">{title}</h2>}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
       {children}

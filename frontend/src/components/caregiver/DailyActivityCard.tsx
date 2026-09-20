@@ -188,14 +188,14 @@ export function DailyActivityCard({
             </ul>
 
             {canStart ? (
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => onStart()}
-                  className="flex flex-1 min-w-[200px] items-center justify-center gap-3 rounded-[22px] bg-glow-500 px-6 py-4 text-base font-semibold text-white shadow-glow transition duration-200 ease-calm hover:bg-glow-600 active:scale-[0.995] sm:text-lg"
+                  className="flex w-full items-center justify-center gap-3 rounded-[22px] bg-glow-500 px-4 py-4 text-base font-semibold text-white shadow-glow transition duration-200 ease-calm hover:bg-glow-600 active:scale-[0.995] sm:w-auto sm:min-w-[200px] sm:flex-1 sm:px-6 sm:text-lg"
                 >
-                  <Icon name="play" size={20} />
-                  Start Full Session ({activityCount} Games)
+                  <Icon name="play" size={20} className="shrink-0" />
+                  <span className="min-w-0">Start Full Session ({activityCount} Games)</span>
                 </button>
                 <Button
                   variant="secondary"

@@ -54,7 +54,7 @@ export function CaregiverDashboard() {
         {/* ─── Today at a glance ─── */}
         <section aria-labelledby="glance-heading">
           <h2 id="glance-heading" className="sr-only">Today at a glance</h2>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
               label="Activities today"
               value={todaySession?.completed ? 'Done' : todaySession?.activityCount ?? 3}

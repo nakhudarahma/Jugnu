@@ -102,8 +102,6 @@ export function SettingsScreen() {
 
   const [levelBlocked, setLevelBlocked] = useState(false)
 
-  const [confirmSignOut, setConfirmSignOut] = useState(false)
-
   const savedCallName = currentUser?.callsPatient ?? patient.displayName
 
   const dirty =
@@ -513,29 +511,24 @@ export function SettingsScreen() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          eyebrow="Session"
-          title="Log out of Jugnu"
-          action={
-            <Button variant="primary" icon="logout" onClick={() => setConfirmSignOut(true)}>
-              Log out
-            </Button>
-          }
-        >
-          <p className="text-sm text-ink-soft">
-            Returns to the sign-in screen. Your PIN is still needed to come back; nothing on {patientName}’s side changes.
-          </p>
-        </SectionCard>
+        <div className="pb-4">
+          <Button variant="secondary" icon="logout" block onClick={() => {
+            dispatch({ type: 'signOut' })
+            navigate('/login')
+          }}>
+            Sign out
+          </Button>
+        </div>
       </div>
 
       {canChange && dirty && (
-        <div className="sticky bottom-4 z-20 mx-auto mt-6 flex w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl items-center justify-between gap-3 rounded-card border border-line bg-paper/95 px-4 py-3 shadow-lift">
+        <div className="sticky z-20 mx-auto mt-6 flex w-full max-w-5xl flex-col items-stretch gap-3 rounded-card border border-line bg-paper/95 px-4 py-3 shadow-lift bottom-20 sm:bottom-4 sm:flex-row sm:items-center sm:justify-between lg:max-w-6xl xl:max-w-7xl">
           <p className="text-sm font-semibold text-ink-soft">Unsaved changes</p>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={discard}>
+            <Button variant="ghost" onClick={discard} className="max-sm:flex-1">
               Discard
             </Button>
-            <Button variant="primary" icon="shield" onClick={() => beginGate('changes')}>
+            <Button variant="primary" icon="shield" onClick={() => beginGate('changes')} className="max-sm:flex-1">
               Save changes
             </Button>
           </div>
@@ -573,34 +566,6 @@ export function SettingsScreen() {
           }}
         />
         {confirmError && <p className="mt-2 text-sm text-clay-700">{confirmError}</p>}
-      </Modal>
-
-      {/* Log out can't be undone, so the button always asks first. */}
-      <Modal
-        open={confirmSignOut}
-        onClose={() => setConfirmSignOut(false)}
-        size="sm"
-        title="Log out of Jugnu?"
-        description="You'll be signed out of this profile on this device."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmSignOut(false)}>
-              Stay signed in
-            </Button>
-            <Button
-              variant="primary"
-              icon="logout"
-              onClick={() => {
-                setConfirmSignOut(false)
-                dispatch({ type: 'signOut' })
-              }}
-            >
-              Log out
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-ink-soft">Your PIN is still needed to come back, and nothing on {patientName}’s side changes.</p>
       </Modal>
 
       {/* Level 2 needs usable memories of both kinds before it can unlock. */}

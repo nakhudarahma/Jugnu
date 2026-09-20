@@ -106,7 +106,7 @@
   }
 
   .card-pad {
-    @apply p-6 sm:p-7;
+    @apply p-4 sm:p-7;
   }
 
   .label-eyebrow {
@@ -118,7 +118,7 @@
   }
 
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-pill px-5 py-3 text-base font-semibold
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-pill px-5 py-3 text-base font-semibold whitespace-nowrap
       transition duration-200 ease-calm disabled:cursor-not-allowed disabled:opacity-45;
     min-height: 48px;
   }
