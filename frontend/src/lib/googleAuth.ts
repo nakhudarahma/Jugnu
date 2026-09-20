@@ -64,7 +64,6 @@ export function triggerGoogleSignIn(
     const client = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: 'openid email profile',
-      prompt: 'select_account',
       callback: (response: { access_token?: string }) => {
         if (!response?.access_token) {
           settle(() => onError?.('cancelled'))
