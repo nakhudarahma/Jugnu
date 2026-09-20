@@ -13,7 +13,7 @@ declare global {
 
 export const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '346769116770-8sbq3hjq50ubsjkp5vt3apf0l6mejhbj.apps.googleusercontent.com'
+  '450102728922-9grspilpf58c41dsuk162bh9edu7die5.apps.googleusercontent.com'
 
 export type GoogleAuthFailure = 'unavailable' | 'cancelled' | 'failed' | 'network'
 
@@ -64,7 +64,6 @@ export function triggerGoogleSignIn(
     const client = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: 'openid email profile',
-      prompt: 'select_account',
       callback: (response: { access_token?: string }) => {
         if (!response?.access_token) {
           settle(() => onError?.('cancelled'))
@@ -82,6 +81,7 @@ export function triggerGoogleSignIn(
           .catch(() => settle(() => onError?.('network')))
       },
       error_callback: (error: { error?: string; error_description?: string }) => {
+        console.error('[Jugnu] Google OAuth error_callback:', error)
         settle(() => {
           if (error?.error === 'popup_closed_by_user' || error?.error === 'user_cancelled_authorize') {
             onError?.('cancelled')
