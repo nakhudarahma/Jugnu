@@ -81,6 +81,7 @@ export function triggerGoogleSignIn(
           .catch(() => settle(() => onError?.('network')))
       },
       error_callback: (error: { error?: string; error_description?: string }) => {
+        console.error('[Jugnu] Google OAuth error_callback:', error)
         settle(() => {
           if (error?.error === 'popup_closed_by_user' || error?.error === 'user_cancelled_authorize') {
             onError?.('cancelled')
