@@ -1,14 +1,12 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'jugnu-v2'
+const CACHE_NAME = 'jugnu-v3'
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/pwa.png',
 ]
 
-// Install — cache shell
+// Install — cache shell (index.html is cached on first successful navigation fetch)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -16,7 +14,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting()
 })
 
-// Activate — clean old caches
+// Activate — take control immediately and clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -26,7 +24,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Fetch — cache-first for static assets, network-first for API
+// Fetch
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
@@ -42,13 +40,16 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return
+
   // API requests: network-first, fall back to cache
   if (url.pathname.startsWith('/api/') || url.pathname === '/health') {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
           // Cache successful GET API responses for offline
-          if (event.request.method === 'GET' && response.ok) {
+          if (response.ok) {
             const clone = response.clone()
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
           }
@@ -65,25 +66,56 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets: cache-first, fall back to network, fall back to offline index.html
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached
-      return fetch(event.request)
+  // Navigation requests (index.html): network-first so fresh deploys win over stale shell
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
-          if (response.ok && event.request.method === 'GET') {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone)
+              cache.put('/index.html', clone)
+            })
+          }
+          return response
+        })
+        .catch(async () => {
+          const cached = await caches.match('/index.html')
+          return cached || new Response('Offline', { status: 503, statusText: 'Service Unavailable' })
+        })
+    )
+    return
+  }
+
+  // Hashed build assets (/assets/): cache-first, immutable content-hashed filenames
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
             const clone = response.clone()
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
           }
           return response
         })
-        .catch(async () => {
-          if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
-            const indexCache = await caches.match('/index.html')
-            if (indexCache) return indexCache
-          }
-          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' })
-        })
+      })
+    )
+    return
+  }
+
+  // Everything else (manifest, icons, etc): cache-first, fall back to network
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached
+      return fetch(event.request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+        }
+        return response
+      })
     })
   )
 })
