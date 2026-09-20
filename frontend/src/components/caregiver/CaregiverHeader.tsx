@@ -18,36 +18,35 @@ interface CaregiverHeaderProps {
   title: string
   dateLabel: string
   roleLabel?: string
-  onOpenProfile: () => void
-  profileName: string
 }
 
-export function CaregiverHeader({ title, dateLabel, roleLabel, onOpenProfile, profileName }: CaregiverHeaderProps) {
+/** Colorful hero greeting. The warm glow is the firefly of the logo, sunrise side. */
+export function CaregiverHeader({ title, dateLabel, roleLabel }: CaregiverHeaderProps) {
   return (
-    <header className="flex items-start justify-between gap-4 px-1 pb-5 pt-6">
-      <div className="min-w-0">
-        <div className="mb-2 flex items-center gap-2">
-          <BrandMark size={48} />
-          <span className="label-eyebrow">Jugnu</span>
-          {roleLabel && (
-            <span className="rounded-pill bg-sand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-              {roleLabel}
-            </span>
-          )}
-        </div>
-        <h1 className="truncate font-display text-[1.75rem] leading-tight text-ink sm:text-[2rem]">{title}</h1>
-        <p className="mt-1 text-sm text-ink-soft">{dateLabel}</p>
-      </div>
+    <header className="relative mt-2 overflow-hidden rounded-card border border-glow-200/80 bg-gradient-to-br from-glow-100 via-cream to-sage-100/70 px-5 py-5 shadow-card sm:px-6 sm:py-6">
+      {/* Soft glow orbs — sunlight falling through ocean water. */}
+      <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-48 w-48 rounded-full bg-glow-200/60 blur-2xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-sage-500/15 blur-2xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute right-8 top-6 h-20 w-20 rounded-full bg-clay-500/15 blur-xl" />
 
-      {/* Deliberately small: settings should never compete with today's activity. */}
-      <button
-        type="button"
-        onClick={onOpenProfile}
-        aria-label={`Account and settings — signed in as ${profileName}`}
-        className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-paper text-ink-soft shadow-card transition duration-200 ease-calm hover:border-glow-300 hover:text-ink"
-      >
-        <Icon name="user" size={17} />
-      </button>
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-2.5 flex items-center gap-2">
+            <BrandMark size={40} />
+            <span className="label-eyebrow">Jugnu</span>
+            {roleLabel && (
+              <span className="rounded-pill border border-glow-200 bg-paper/70 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-glow-700">
+                {roleLabel}
+              </span>
+            )}
+          </div>
+          <h1 className="truncate font-display text-[1.9rem] leading-tight text-ink sm:text-[2.1rem]">{title}</h1>
+          <div className="mt-1.5 flex items-center gap-2 text-sm text-ink-soft">
+            <Icon name="clock" size={14} className="shrink-0 text-glow-600" />
+            {dateLabel}
+          </div>
+        </div>
+      </div>
     </header>
   )
 }

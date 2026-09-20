@@ -126,7 +126,7 @@ export function DailyActivityCard({
         completed ? 'border-sage-100 bg-sage-100/50' : 'border-glow-200 bg-gradient-to-br from-glow-50 to-glow-100/70'
       }`}
     >
-      <div className="relative p-5 sm:p-6">
+      <div className="relative p-6 sm:p-7">
         <div className="flex items-center justify-between">
           <p className="label-eyebrow">Today’s Activity</p>
         </div>
@@ -167,12 +167,26 @@ export function DailyActivityCard({
           </>
         ) : (
           <>
-            <h2 id="today-activity-heading" className="mt-2 font-display text-2xl text-ink">
-              Not started yet
+            <h2 id="today-activity-heading" className="mt-2 font-display text-2xl text-ink sm:text-[1.75rem]">
+              Ready when you are
             </h2>
-            <p className="mt-2 max-w-md text-sm text-ink-soft">
-              A gentle set of {activityCount} activities. You can start the full session or select an individual game below.
+            <p className="mt-2 max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
+              A gentle set of {activityCount} activities for {patientName}, each spoken aloud before it's shown.
             </p>
+
+            <ul className="mt-4 flex flex-wrap gap-2" aria-label="Today’s activity set">
+              {games.map((g) => (
+                <li
+                  key={g.id}
+                  className="flex items-center gap-1.5 rounded-pill border border-glow-200/80 bg-paper/80 px-3 py-1.5 text-xs font-semibold text-ink shadow-sm"
+                >
+                  <Icon name={g.icon} size={14} className="text-glow-600" />
+                  {g.name}
+                  <span className="font-medium text-ink-faint">· {g.domain}</span>
+                </li>
+              ))}
+            </ul>
+
             {canStart ? (
               <div className="mt-5 flex flex-wrap gap-3">
                 <button

@@ -121,11 +121,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [queueLength, setQueueLength] = useState(0)
 
   // The session records who's active; each account's space is stored under its
-  // own key so accounts never share (or clobber) each other's data.
+  // own key so accounts never share (or clobber) each other's data. The seeded
+  // demo family is the exception: they share one space, so a change the primary
+  // caregiver makes (personalization, language) shows up for the helper too.
   useEffect(() => {
     saveSession({ currentUserId: state.currentUserId })
     if (state.currentUserId) {
-      saveSpace(state.currentUserId, {
+      const key = seedState.users.some((u) => u.id === state.currentUserId) ? DEMO_SPACE_KEY : state.currentUserId
+      saveSpace(key, {
         spaceId: state.spaceId,
         patient: state.patient,
         users: state.users,
@@ -163,6 +166,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const patientId = state.patient.id
 
+  // One key shared by every seeded demo persona (the family on this device).
+  const DEMO_SPACE_KEY = 'jugnu.space.v1.demo'
+  const isSeedUser = (userId: string) => seedState.users.some((u) => u.id === userId)
+  const loadSpaceFor = (userId: string) => loadSpace(isSeedUser(userId) ? DEMO_SPACE_KEY : userId)
+
   // Seeded demo personas together own the seeded demo space. They have no saved
   // space of their own, so activating one restores the demo space instead of a
   // blank one (a real account always gets its own fresh space).
@@ -177,14 +185,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     moods: seedState.moods,
     invites: seedState.invites,
   }), [])
-  const isSeedUser = (userId: string) => seedState.users.some((u) => u.id === userId)
-
   const api = useMemo<AppContextValue['api']>(() => {
-    // Every account owns its own space. Loading an account that has one restores
-    // it; an account without a saved space starts a fresh one — never a shared one.
+    // In real use every account owns its own space. The seeded family shares one,
+    // so what one caregiver changes is what everyone else sees.
     const activateUser = (userId: string, user?: Partial<AppUser>) => {
       setActiveWorker(userId)
-      const space = loadSpace(userId)
+      const space = loadSpaceFor(userId)
       if (space) dispatch({ type: 'restoreSpace', userId, user, space })
       else if (isSeedUser(userId)) dispatch({ type: 'restoreSpace', userId, user, space: seedSpaceSnapshot })
       else dispatch({ type: 'createNewSpace', userId, user })
@@ -193,7 +199,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const known = state.users.find((u) => u.id === userId)
       if (!known) return
       setActiveWorker(userId)
-      const space = loadSpace(userId)
+      const space = loadSpaceFor(userId)
       if (space) dispatch({ type: 'restoreSpace', userId, user: known, space })
       else if (isSeedUser(userId)) dispatch({ type: 'restoreSpace', userId, user: known, space: seedSpaceSnapshot })
       else dispatch({ type: 'createNewSpace', userId, user: known })

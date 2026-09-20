@@ -2,13 +2,14 @@ import type { ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
 import { useSpeaking } from '@/hooks/useSpeaking'
 
-type Tone = 'neutral' | 'glow' | 'sage' | 'clay' | 'dusk' | 'lilac'
+type Tone = 'neutral' | 'glow' | 'sage' | 'clay' | 'amber' | 'dusk' | 'lilac'
 
 const toneClass: Record<Tone, string> = {
   neutral: 'bg-sand text-ink-soft',
   glow: 'bg-glow-100 text-glow-700',
   sage: 'bg-sage-100 text-sage-700',
   clay: 'bg-clay-100 text-clay-700',
+  amber: 'bg-amber-100 text-amber-700',
   dusk: 'bg-dusk-100 text-dusk-700',
   lilac: 'bg-lilac-100 text-lilac-700',
 }

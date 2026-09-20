@@ -6,7 +6,7 @@ import { layerLabel, type Capabilities } from '@/lib/capabilities'
 import type { AppUser, PatientProfile } from '@/types'
 import { languageLabel } from '@/lib/i18n'
 
-export type SettingsSection = 'patient' | 'language' | 'personalization' | 'family' | 'account' | 'memories'
+export type SettingsSection = 'patient' | 'language' | 'personalization' | 'account'
 
 interface ProfileMenuProps {
   open: boolean
@@ -29,7 +29,7 @@ export function ProfileMenu({ open, onClose, user, users, patient, can, onOpenSe
       icon: 'user',
       label: 'Patient profile',
       value: `${patient.name} · ${patient.age} · ${patient.region}`,
-      allowed: can.editPatientProfile,
+      allowed: can.editPatientProfile || can.viewPatientProfile,
     },
     { section: 'language', icon: 'sparkle', label: 'Language', value: languageLabel[patient.language], allowed: can.editPersonalization },
     {
@@ -37,10 +37,8 @@ export function ProfileMenu({ open, onClose, user, users, patient, can, onOpenSe
       icon: 'image',
       label: 'Personalization',
       value: patient.personalizationLevel === 2 ? 'Level 2 — Personalized' : 'Level 1 — Generic',
-      allowed: can.editPersonalization,
+      allowed: can.editPersonalization || can.viewPersonalization,
     },
-    { section: 'family', icon: 'users', label: 'Linked family members', value: 'Caregivers, helpers, family', allowed: can.manageFamily },
-    { section: 'memories', icon: 'image', label: 'Memory shelf', value: 'Photos, voices and stories', allowed: can.viewMemories },
     { section: 'account', icon: 'shield', label: 'Account & security', value: 'PIN, account information', allowed: can.editSecurity },
   ]
 

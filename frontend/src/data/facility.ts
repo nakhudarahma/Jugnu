@@ -1,5 +1,5 @@
 import type { LanguageCode, MoodValue, PersonalizationLevel, Person, Reminder, SessionRecord } from '@/types'
-import { daysAgo } from '@/lib/date'
+import { daysAgo, today } from '@/lib/date'
 import { allTrends, changeSignal } from '@/lib/trends'
 
 /**
@@ -557,7 +557,40 @@ export function saveResidents(): void {
 
 let residentStore: FacilityResident[] = loadResidents()
 
+/** Day-stamp key per account, used to count real accounts' missed sessions once per day. */
+const reconcileDayKey = () => `${residentsKey()}_day`
+
+/**
+ * Real accounts: when a new day rolls over and a resident's session was left
+ * undone, count it as one missed session and reset today's session for a fresh
+ * day. Demo accounts are untouched — their seeded roster stays exactly as shown.
+ */
+function reconcileMissedSessions(): void {
+  if (activeWorkerId?.startsWith('u_hw_demo_')) return
+
+  let lastDay: string
+  try {
+    lastDay = localStorage.getItem(reconcileDayKey()) ?? today()
+  } catch {
+    lastDay = today()
+  }
+  if (lastDay >= today()) return
+
+  for (const r of residentStore) {
+    if (r.todaySession !== 'done') r.missedSessions += 1
+    r.todaySession = 'pending'
+    delete r.scheduledTime
+  }
+  persistResidents()
+  try {
+    localStorage.setItem(reconcileDayKey(), today())
+  } catch {
+    /* storage unavailable — we'll re-check next load */
+  }
+}
+
 export function getResidents(): FacilityResident[] {
+  reconcileMissedSessions()
   return residentStore
 }
 

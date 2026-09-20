@@ -4,6 +4,7 @@ import { CaregiverDashboard } from '@/screens/CaregiverDashboard'
 import { CircleScreen } from '@/screens/CircleScreen'
 import { FamilyHomeScreen } from '@/screens/FamilyHomeScreen'
 import { HealthWorkerScreen } from '@/screens/HealthWorkerScreen'
+import { HealthWorkerPatientsScreen } from '@/screens/HealthWorkerPatientsScreen'
 import { HealthWorkerSettingsScreen } from '@/screens/HealthWorkerSettingsScreen'
 import { HealthWorkerPatientScreen } from '@/screens/HealthWorkerPatientScreen'
 import { HealthWorkerSessionScreen } from '@/screens/HealthWorkerSessionScreen'
@@ -126,6 +127,7 @@ export function App() {
         <Route path="/settings" element={<SettingsScreen />} />
         
         <Route path="/healthworker" element={<HealthWorkerScreen />} />
+        <Route path="/healthworker/patients" element={<HealthWorkerPatientsScreen />} />
         <Route path="/healthworker/settings" element={<HealthWorkerSettingsScreen />} />
         <Route path="/healthworker/:residentId" element={<HealthWorkerPatientScreen />} />
         <Route path="/healthworker/:residentId/session" element={<HealthWorkerSessionScreen />} />

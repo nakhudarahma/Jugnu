@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Chip, PermissionNote } from '@/components/ui/Bits'
 import { Field, Select, TextArea, TextInput, Toggle } from '@/components/ui/Form'
 import { Icon } from '@/components/ui/Icon'
+import { Modal } from '@/components/ui/Modal'
 import { Portrait } from '@/components/ui/Portrait'
 import { relationshipNames } from '@/lib/lexicon'
 import { uid } from '@/lib/id'
@@ -72,6 +73,8 @@ function useRecorder() {
 
 const NEW_PERSON = '__new__'
 
+type MemoryGame = 'whos_calling' | 'remember_when'
+
 /**
  * One recorder for everyone. A primary caregiver's memory is ready to use straight
  * away; a family member's arrives as a contribution waiting for her approval.
@@ -107,6 +110,13 @@ export function MemoryComposerScreen() {
 
   const [title, setTitle] = useState(defaultTitle)
   const [description, setDescription] = useState(defaultDesc)
+  // Which game this memory is being recorded for. Pre-selected via ?game= when the
+  // caller already knows (dashboard, family home, settings cards); otherwise a
+  // popup asks first and the form appears once a game is picked.
+  const [game, setGame] = useState<MemoryGame | null>(() =>
+    gameParam === 'whos_calling' || gameParam === 'remember_when' ? (gameParam as MemoryGame) : null,
+  )
+  const [pickerOpen, setPickerOpen] = useState(() => gameParam !== 'whos_calling' && gameParam !== 'remember_when')
   const [personId, setPersonId] = useState(matchedPerson?.id ?? '')
   const [newName, setNewName] = useState('')
   const [newRelationship, setNewRelationship] = useState('daughter')
@@ -120,6 +130,25 @@ export function MemoryComposerScreen() {
     const reader = new FileReader()
     reader.onload = () => setPhotoUrl(String(reader.result))
     reader.readAsDataURL(file)
+  }
+
+  const pickGame = (next: MemoryGame) => {
+    setPickerOpen(false)
+    setGame(next)
+    if (!title.trim()) {
+      setTitle(
+        next === 'whos_calling'
+          ? `Who's Calling: Voice clip from ${currentUser?.name ?? 'Family'}`
+          : `Remember When: Story from ${currentUser?.name ?? 'Family'}`,
+      )
+    }
+    if (!description.trim()) {
+      setDescription(
+        next === 'whos_calling'
+          ? `Voice greeting for ${patientName}’s audio recognition game.`
+          : `Warm memory prompt for ${patientName}’s reminiscence activities.`,
+      )
+    }
   }
 
   const canSave = title.trim().length > 1 && (personId !== NEW_PERSON || newName.trim().length > 0)
@@ -208,6 +237,7 @@ export function MemoryComposerScreen() {
                 setSaved(false)
                 setTitle('')
                 setDescription('')
+                setGame(null)
                 setPersonId('')
                 setPhotoUrl(undefined)
                 setTranscript('')
@@ -235,7 +265,7 @@ export function MemoryComposerScreen() {
       />
 
       <div className="space-y-4">
-        {gameParam === 'whos_calling' && (
+        {game === 'whos_calling' && (
           <div className="rounded-card border border-glow-300 bg-glow-50/90 p-4 shadow-card">
             <div className="flex items-start gap-3">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-glow-200 text-glow-800">
@@ -255,7 +285,7 @@ export function MemoryComposerScreen() {
           </div>
         )}
 
-        {gameParam === 'remember_when' && (
+        {game === 'remember_when' && (
           <div className="rounded-card border border-sage-300 bg-sage-50/90 p-4 shadow-card">
             <div className="flex items-start gap-3">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sage-200 text-sage-800">
@@ -461,6 +491,53 @@ export function MemoryComposerScreen() {
           )}
         </div>
       </div>
+
+      {/* First step: which game is this memory for? */}
+      <Modal
+        open={pickerOpen}
+        onClose={() => navigate(backTo)}
+        title="Which game is this for?"
+        description={`Jugnu plays what you record inside a specific game with ${patientName}. Pick one and the form sets itself up.`}
+        size="sm"
+        footer={
+          <Button variant="ghost" onClick={() => navigate(backTo)}>
+            Go back
+          </Button>
+        }
+      >
+        <div className="space-y-2.5">
+          <button
+            type="button"
+            onClick={() => pickGame('whos_calling')}
+            className="flex w-full items-start gap-3 rounded-2xl border border-line bg-paper p-4 text-left transition duration-200 ease-calm hover:border-glow-300 hover:bg-glow-50/60"
+          >
+            <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-glow-50 text-glow-700">
+              <Icon name="volume" size={19} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[15px] font-semibold text-ink">Who's Calling?</span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">
+                Record a short voice greeting from a family member for the recognition game.
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => pickGame('remember_when')}
+            className="flex w-full items-start gap-3 rounded-2xl border border-line bg-paper p-4 text-left transition duration-200 ease-calm hover:border-sage-300 hover:bg-sage-50/60"
+          >
+            <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sage-50 text-sage-700">
+              <Icon name="heart" size={19} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[15px] font-semibold text-ink">Remember When</span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">
+                Share a real memory story — a place, a day, a small moment with {patientName}.
+              </span>
+            </span>
+          </button>
+        </div>
+      </Modal>
     </Page>
   )
 }

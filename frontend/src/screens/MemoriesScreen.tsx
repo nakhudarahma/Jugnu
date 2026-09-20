@@ -132,16 +132,17 @@ export function MemoriesScreen() {
   const { language, speechRate } = state.patient
 
   const { approved, pending } = useMemo(() => {
-    const allowed = helper && currentUser?.visibleMemoryIds?.length
-      ? state.memories.filter((m) => currentUser.visibleMemoryIds?.includes(m.id))
-      : state.memories
-    const mine = contributing ? allowed.filter((m) => m.createdByUserId === currentUser?.id) : allowed
+    const myPending = contributing ? state.memories.filter((m) => m.createdByUserId === currentUser?.id) : state.memories
     return {
-      approved: allowed.filter((m) => m.status === 'approved'),
+      // Caregivers and helpers see every approved memory; a contributing family
+      // member only sees the ones they shared themselves.
+      approved: contributing
+        ? state.memories.filter((m) => m.status === 'approved' && m.createdByUserId === currentUser?.id)
+        : state.memories.filter((m) => m.status === 'approved'),
       // Only the approver sees other people's pending contributions.
-      pending: (can.approveContributions ? allowed : mine).filter((m) => m.status === 'pending'),
+      pending: (can.approveContributions ? state.memories : myPending).filter((m) => m.status === 'pending'),
     }
-  }, [can.approveContributions, contributing, currentUser, helper, state.memories])
+  }, [can.approveContributions, contributing, currentUser, state.memories])
 
   const [shelfView, setShelfView] = useState<'approved' | 'pending'>('pending')
 

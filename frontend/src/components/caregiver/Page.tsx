@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '@/components/ui/Icon'
+import { AppRail } from './AppRail'
 
-/** Shared page frame: one comfortable column, generous breathing room. */
+/** Shared page frame: persistent teal rail + one comfortable column with breathing room. */
 export function Page({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className="min-h-[100dvh] bg-cream">
-      <div className={`mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6 lg:max-w-6xl lg:px-8 xl:max-w-7xl xl:px-12 ${className}`}>{children}</div>
+    <div className="app-surface min-h-[100dvh]">
+      <div className="mx-auto flex w-full max-w-[1900px]">
+        <AppRail />
+        <div className={`min-w-0 flex-1 px-4 pb-16 sm:px-6 lg:px-8 xl:px-10 ${className}`}>{children}</div>
+      </div>
     </div>
   )
 }

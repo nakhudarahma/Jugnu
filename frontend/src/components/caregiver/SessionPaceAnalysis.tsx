@@ -49,7 +49,7 @@ export function SessionPaceAnalysis({ sessions, onOpen }: SessionPaceAnalysisPro
       </div>
 
       <p className="mt-2.5 text-xs text-ink-muted leading-relaxed bg-amber-50/50 p-2.5 rounded-md border border-amber-200/60">
-        💡 <strong className="text-ink">Observation:</strong> {pace.advice}
+        <strong className="text-ink">Observation:</strong> {pace.advice}
       </p>
     </SectionCard>
   )

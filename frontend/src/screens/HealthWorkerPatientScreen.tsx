@@ -17,8 +17,8 @@ import type { Reminder, ReminderRepeat, PersonalizationLevel, LanguageCode } fro
 import { SessionPaceAnalysis } from '@/components/caregiver/SessionPaceAnalysis'
 
 const toneMap: Record<ResidentStatus, { chip: string; banner: string; text: string }> = {
-  red: { chip: 'bg-clay-100 text-clay-700', banner: 'border-clay-200 bg-clay-50/60', text: 'text-clay-800' },
-  amber: { chip: 'bg-glow-100 text-glow-700', banner: 'border-glow-200 bg-glow-50/60', text: 'text-glow-900' },
+  red: { chip: 'bg-amber-100 text-amber-700', banner: 'border-amber-200 bg-amber-50/60', text: 'text-amber-800' },
+  amber: { chip: 'bg-clay-100 text-clay-700', banner: 'border-clay-200 bg-clay-50/60', text: 'text-clay-800' },
   green: { chip: 'bg-sage-100 text-sage-700', banner: 'border-sage-200 bg-sage-50/60', text: 'text-sage-800' },
 }
 
@@ -641,7 +641,7 @@ export function HealthWorkerPatientScreen() {
         <section className={`rounded-card border p-5 sm:p-6 ${tone.banner}`}>
           <div className="flex items-center justify-between gap-3">
             <h2 className="label-eyebrow">Current status</h2>
-            <Chip tone={status === 'red' ? 'clay' : status === 'amber' ? 'glow' : 'sage'}>{statusLabel[status]}</Chip>
+            <Chip tone={status === 'red' ? 'amber' : status === 'amber' ? 'clay' : 'sage'}>{statusLabel[status]}</Chip>
           </div>
           <p className={`mt-2 font-display text-xl leading-snug ${tone.text}`}>{signalFor(resident)}</p>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">

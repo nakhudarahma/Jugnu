@@ -1,8 +1,4 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Page } from '@/components/caregiver/Page'
-import { ProfileMenu } from '@/components/caregiver/ProfileMenu'
-import { Button, IconButton } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Bits'
 import { SectionCard } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/Icon'
@@ -15,13 +11,11 @@ import { useApp } from '@/state/AppContext'
 /**
  * Layer 3 — Connected Family Member (SIH26003 Specification).
  * Provides a view-only dashboard with a weekly family digest, shared safety alerts
- * (sustained decline & caregiver burnout protection), and remote voice game contributions
- * with an editorial caregiver-approval gate.
+ * (sustained decline & caregiver burnout protection), and a list of their own
+ * contributed memories with an editorial caregiver-approval gate.
  */
 export function FamilyHomeScreen() {
-  const navigate = useNavigate()
-  const { state, dispatch, currentUser, can, api } = useApp()
-  const [profileOpen, setProfileOpen] = useState(false)
+  const { state, currentUser } = useApp()
 
   if (!currentUser) return null
 
@@ -66,7 +60,6 @@ export function FamilyHomeScreen() {
               : `${primary?.name ?? 'The family'} will sit with them and Jugnu today.`}
           </p>
         </div>
-        <IconButton icon="user" label="Your account" onClick={() => setProfileOpen(true)} />
       </header>
 
       <div className="space-y-4">
@@ -162,76 +155,6 @@ export function FamilyHomeScreen() {
           )}
         </section>
 
-        {/* Remote Voice Contributions for Cognitive Games */}
-        <section className="card card-pad bg-gradient-to-br from-glow-50/70 to-paper space-y-3">
-          <div>
-            <p className="label-eyebrow">Remote Contributions</p>
-            <h2 className="font-display text-xl text-ink">Record for {patientName}’s Cognitive Games</h2>
-            <p className="mt-1 text-xs text-ink-soft leading-relaxed">
-              Your voice helps power {patientName}’s games from afar. Recordings are sent to {primary?.name ?? 'the primary caregiver'} for a quick review before playing in {patientName}’s sessions.
-            </p>
-          </div>
-
-          <div className="grid gap-2.5 sm:grid-cols-2 pt-1">
-            {/* "Who's Calling?" game contribution */}
-            <div className="flex flex-col justify-between rounded-2xl border border-line bg-paper/80 p-3.5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-glow-100 text-glow-700">
-                    <Icon name="volume" size={15} />
-                  </span>
-                  <p className="text-sm font-semibold text-ink">“Who’s Calling?”</p>
-                </div>
-                <p className="mt-2 text-xs text-ink-soft">
-                  Record a short, cheerful 5-second greeting so {patientName} can identify your voice in the audio quiz.
-                </p>
-              </div>
-              <div className="mt-3">
-                <Button
-                  variant="secondary"
-                  icon="mic"
-                  onClick={() => navigate('/memories/new?game=whos_calling')}
-                  className="w-full text-xs justify-center"
-                >
-                  Record Greeting
-                </Button>
-              </div>
-            </div>
-
-            {/* "Remember When" game contribution */}
-            <div className="flex flex-col justify-between rounded-2xl border border-line bg-paper/80 p-3.5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-sage-100 text-sage-700">
-                    <Icon name="heart" size={15} />
-                  </span>
-                  <p className="text-sm font-semibold text-ink">“Remember When”</p>
-                </div>
-                <p className="mt-2 text-xs text-ink-soft">
-                  Share a fond memory (e.g. a trip or family meal) to spark warm reminiscence in the daily session.
-                </p>
-              </div>
-              <div className="mt-3">
-                <Button
-                  variant="secondary"
-                  icon="mic"
-                  onClick={() => navigate('/memories/new?game=remember_when')}
-                  className="w-full text-xs justify-center"
-                >
-                  Record Memory Prompt
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-1 border-t border-line/50">
-            <span className="text-xs text-ink-faint">Or upload a traditional photo & memory note:</span>
-            <Button variant="ghost" icon="plus" onClick={() => navigate('/memories/new')} className="text-xs">
-              General Memory
-            </Button>
-          </div>
-        </section>
-
         {/* Your Contributions List & Status */}
         <SectionCard eyebrow="Your contributions" title={`${mine.length} shared with Maa`}>
           {mine.length ? (
@@ -257,7 +180,7 @@ export function FamilyHomeScreen() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-ink-soft">Nothing yet. Record a quick voice greeting above to get started.</p>
+            <p className="text-sm text-ink-soft">Nothing shared yet.</p>
           )}
           {mine.length > 0 && (
             <p className="mt-3 flex items-center gap-2 text-xs text-ink-faint">
@@ -284,21 +207,6 @@ export function FamilyHomeScreen() {
           </ul>
         </SectionCard>
       </div>
-
-      <ProfileMenu
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        user={currentUser}
-        users={state.users}
-        patient={patient}
-        can={can}
-        onOpenSection={() => navigate('/settings')}
-        onSwitchUser={(userId) => {
-          api.switchUser(userId)
-          navigate(state.users.find((u) => u.id === userId)?.layer === 3 ? '/family' : '/')
-        }}
-        onSignOut={() => dispatch({ type: 'signOut' })}
-      />
     </Page>
   )
 }

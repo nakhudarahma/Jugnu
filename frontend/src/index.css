@@ -4,8 +4,60 @@
 
 @layer base {
   :root {
-    --patient-bg: #fbf4e9;
+    --patient-bg: #eef7f4;
     --tap-min: 120px;
+
+    /* Magical ocean — light aqua surfaces, teal primary, sunlit gold accents.
+       rgb triplets so Tailwind's `/alpha` utilities keep working. */
+    --cream: 236 248 245;
+    --sand: 221 241 237;
+    --paper: 255 255 255;
+    --line: 209 233 228;
+    --ink: 19 48 51;
+    --ink-soft: 92 122 122;
+    --ink-faint: 128 158 156;
+    /* glow = teal — the primary: buttons, links, focus, hero panels */
+    --glow-50: 236 250 248;
+    --glow-100: 205 242 237;
+    --glow-200: 165 228 221;
+    --glow-300: 113 210 200;
+    --glow-400: 56 187 174;
+    --glow-500: 23 166 152;
+    --glow-600: 12 138 125;
+    --glow-700: 10 109 99;
+    /* sage = aqua-green (positive / done) */
+    --sage-50: 240 250 244;
+    --sage-100: 216 241 233;
+    --sage-200: 186 231 213;
+    --sage-500: 32 163 137;
+    --sage-600: 24 142 116;
+    --sage-700: 16 124 102;
+    --sage-800: 12 96 78;
+    /* dusk = calm open-water blue */
+    --dusk-100: 231 238 245;
+    --dusk-500: 97 124 146;
+    --dusk-700: 66 89 107;
+    /* clay = sunlit gold (review suggested) */
+    --clay-50: 255 249 231;
+    --clay-100: 255 244 214;
+    --clay-200: 250 222 138;
+    --clay-500: 238 175 36;
+    --clay-600: 218 152 26;
+    --clay-700: 166 108 8;
+    --clay-800: 138 90 4;
+    /* amber = dark brownish red (needs attention) */
+    --amber-50: 252 244 241;
+    --amber-100: 247 229 223;
+    --amber-200: 238 202 191;
+    --amber-500: 158 68 53;
+    --amber-600: 140 58 45;
+    --amber-700: 116 46 37;
+    --amber-800: 96 37 30;
+    /* lilac = twilight magic */
+    --lilac-100: 240 235 252;
+    --lilac-500: 131 108 190;
+    --lilac-700: 99 78 152;
+    --danger: 211 58 48;
   }
 
   html {
@@ -46,15 +98,15 @@
 
 @layer components {
   .card {
-    @apply rounded-card border border-line bg-paper shadow-card;
+    @apply rounded-card bg-paper/95 shadow-card;
   }
 
   .card-quiet {
-    @apply rounded-card border border-line/70 bg-paper/70;
+    @apply rounded-card border border-line/50 bg-paper/55;
   }
 
   .card-pad {
-    @apply p-5 sm:p-6;
+    @apply p-6 sm:p-7;
   }
 
   .label-eyebrow {
@@ -97,9 +149,9 @@
     @apply inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold;
   }
 
-  /* ---- Patient surface: sparse, warm, very large targets ---- */
+  /* ---- Patient surface: sparse, calm, very large targets ---- */
   .patient-screen {
-    background: radial-gradient(120% 90% at 50% 0%, #fffaf1 0%, var(--patient-bg) 58%, #f6ead9 100%);
+    background: radial-gradient(120% 90% at 50% 0%, #f4fbf9 0%, var(--patient-bg) 58%, #e0f0ec 100%);
     min-height: 100dvh;
   }
 
@@ -156,4 +208,25 @@
   .safe-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
+}
+
+/* ─── Magical ocean surface (unlayered so it beats bg-cream) ─── */
+
+.app-surface {
+  background:
+    radial-gradient(26rem 22rem at 92% -8%, rgb(var(--clay-100) / 0.65), transparent 58%),
+    radial-gradient(60rem 38rem at 85% -10%, rgb(var(--glow-200) / 0.55), transparent 62%),
+    radial-gradient(50rem 34rem at -8% 112%, rgb(var(--clay-100) / 0.95), transparent 55%),
+    radial-gradient(48rem 32rem at 60% 120%, rgb(var(--sage-100) / 0.9), transparent 58%),
+    rgb(var(--cream));
+}
+
+/* Brighter cards against the warmer page. */
+.app-surface .card,
+.app-surface .card-quiet {
+  box-shadow: 0 1px 2px rgba(70, 50, 30, 0.05), 0 10px 28px -14px rgba(70, 50, 30, 0.28);
+}
+
+.app-surface .btn-primary {
+  box-shadow: 0 10px 32px -10px rgb(var(--glow-400) / 0.6);
 }

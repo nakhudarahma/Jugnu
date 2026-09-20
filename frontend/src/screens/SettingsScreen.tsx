@@ -8,8 +8,10 @@ import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
 import { SectionCard } from '@/components/ui/Card'
 import { languageLabel, t } from '@/lib/i18n'
+import { layerLabel } from '@/lib/capabilities'
 import { patientLabel } from '@/lib/patientName'
 import { voice } from '@/lib/voice'
+import { Portrait } from '@/components/ui/Portrait'
 import { useApp } from '@/state/AppContext'
 import type { SettingsSection } from '@/components/caregiver/ProfileMenu'
 import type { LanguageCode, PersonalizationLevel } from '@/types'
@@ -100,6 +102,8 @@ export function SettingsScreen() {
 
   const [levelBlocked, setLevelBlocked] = useState(false)
 
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+
   const savedCallName = currentUser?.callsPatient ?? patient.displayName
 
   const dirty =
@@ -112,7 +116,7 @@ export function SettingsScreen() {
     draft.voiceEnabled !== patient.voiceEnabled ||
     draft.speechRate !== patient.speechRate
 
-  const canChange = can.editPatientProfile || can.editPersonalization
+  const canChange = can.editPatientProfile || can.editPersonalization || can.viewPatientProfile || can.viewPersonalization
 
   // Deep links from the profile sheet land on the right card without hiding the rest.
   // When a section closes, the page returns to the overview (top), not home.
@@ -210,7 +214,7 @@ export function SettingsScreen() {
   }
 
   const patientName = patientLabel(patient, currentUser)
-  const nothingAllowed = !can.editPatientProfile && !can.editPersonalization && !can.editSecurity
+  const nothingAllowed = !can.editPatientProfile && !can.viewPatientProfile && !can.editPersonalization && !can.viewPersonalization && !can.editSecurity
 
   // Level 2 readiness mirrors what the session planner actually needs (plan.ts):
   // Who's Calling needs a family voice note; Remember When needs a usable memory
@@ -244,7 +248,7 @@ export function SettingsScreen() {
           />
         )}
 
-        {can.editPatientProfile && (
+        {(can.editPatientProfile || can.viewPatientProfile) && (
           <div ref={(node) => { anchors.current.patient = node }}>
             <SectionCard eyebrow="Patient profile" title="About the person">
               <div className="space-y-4">
@@ -337,97 +341,80 @@ export function SettingsScreen() {
           </div>
         )}
 
-        {can.editPersonalization && (
+        {(can.editPersonalization || can.viewPersonalization) && (
           <div ref={(node) => { anchors.current.personalization = node }}>
             <SectionCard eyebrow="Personalization" title="How personal their activities get">
-              <div className="space-y-4">
-                <Segmented
-                  label="Personalization level"
-                  value={draft.personalizationLevel}
-                  onChange={(personalizationLevel) => {
-                    if (personalizationLevel === 2 && !level2Ready) {
-                      setDraft((d) => ({ ...d, personalizationLevel: 1 }))
-                      setLevelBlocked(true)
-                      return
-                    }
-                    patch({ personalizationLevel })
-                  }}
-                  options={([1, 2] as PersonalizationLevel[]).map((level) => ({
-                    value: level,
-                    label: levelBlurb[level].label,
-                    description: levelBlurb[level].description,
-                  }))}
-                />
-
-                <div className="rounded-2xl bg-sand/60 p-3">
-                  <Toggle
-                    checked={draft.voiceEnabled}
-                    onChange={(voiceEnabled) => patch({ voiceEnabled })}
-                    label="Jugnu speaks"
-                    description="Voice comes first in every activity. Off leaves only the written line."
+              {can.editPersonalization ? (
+                <div className="space-y-4">
+                  <Segmented
+                    label="Personalization level"
+                    value={draft.personalizationLevel}
+                    onChange={(personalizationLevel) => {
+                      if (personalizationLevel === 2 && !level2Ready) {
+                        setDraft((d) => ({ ...d, personalizationLevel: 1 }))
+                        setLevelBlocked(true)
+                        return
+                      }
+                      patch({ personalizationLevel })
+                    }}
+                    options={([1, 2] as PersonalizationLevel[]).map((level) => ({
+                      value: level,
+                      label: levelBlurb[level].label,
+                      description: levelBlurb[level].description,
+                    }))}
                   />
+
+                  <div className="rounded-2xl bg-sand/60 p-3">
+                    <Toggle
+                      checked={draft.voiceEnabled}
+                      onChange={(voiceEnabled) => patch({ voiceEnabled })}
+                      label="Jugnu speaks"
+                      description="Voice comes first in every activity. Off leaves only the written line."
+                    />
+                  </div>
+
+                  <Field label="Speaking speed" hint="Slower is usually kinder. Tap “Hear it” to check.">
+                    {(id) => (
+                      <div className="flex items-center gap-3">
+                        <input
+                          id={id}
+                          type="range"
+                          min={0.6}
+                          max={1.1}
+                          step={0.05}
+                          value={draft.speechRate}
+                          onChange={(e) => patch({ speechRate: Number(e.target.value) })}
+                          className="h-11 flex-1 accent-glow-500"
+                          aria-valuetext={`${Math.round(draft.speechRate * 100)} percent of normal speed`}
+                        />
+                        <Chip tone="neutral">{Math.round(draft.speechRate * 100)}%</Chip>
+                        <Button variant="ghost" icon="volume" onClick={() => sampleVoice(draft.language, draft.speechRate)}>
+                          Hear it
+                        </Button>
+                      </div>
+                    )}
+                  </Field>
                 </div>
-
-                <Field label="Speaking speed" hint="Slower is usually kinder. Tap “Hear it” to check.">
-                  {(id) => (
-                    <div className="flex items-center gap-3">
-                      <input
-                        id={id}
-                        type="range"
-                        min={0.6}
-                        max={1.1}
-                        step={0.05}
-                        value={draft.speechRate}
-                        onChange={(e) => patch({ speechRate: Number(e.target.value) })}
-                        className="h-11 flex-1 accent-glow-500"
-                        aria-valuetext={`${Math.round(draft.speechRate * 100)} percent of normal speed`}
-                      />
-                      <Chip tone="neutral">{Math.round(draft.speechRate * 100)}%</Chip>
-                      <Button variant="ghost" icon="volume" onClick={() => sampleVoice(draft.language, draft.speechRate)}>
-                        Hear it
-                      </Button>
-                    </div>
-                  )}
-                </Field>
-              </div>
-            </SectionCard>
-          </div>
-        )}
-
-        {can.manageFamily && (
-          <div ref={(node) => { anchors.current.family = node }}>
-            <SectionCard
-              eyebrow="Linked family members"
-              title="Their circle"
-              action={
-                <Button variant="secondary" icon="users" onClick={() => navigate('/circle')}>
-                  Open
-                </Button>
-              }
-            >
-              <p className="text-sm text-ink-soft">
-                {state.users.length} people share this Jugnu
-                {state.invites.length ? `, and ${state.invites.length} invitation${state.invites.length === 1 ? '' : 's'} is waiting` : ''}
-                .
-              </p>
-            </SectionCard>
-          </div>
-        )}
-
-        {can.viewMemories && (
-          <div ref={(node) => { anchors.current.memories = node }}>
-            <SectionCard
-              eyebrow="Memory shelf"
-              title="Memories"
-              action={
-                <Button variant="secondary" icon="image" onClick={() => navigate('/memories')}>
-                  Open
-                </Button>
-              }
-            >
-              <p className="text-sm text-ink-soft">
-                Photos, voices and small stories Jugnu can use with {patientName}. Add new ones from the dashboard.
-              </p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper px-4 py-3">
+                    <span className="text-sm font-semibold text-ink">Personalization level</span>
+                    <Chip tone="neutral">{patient.personalizationLevel === 2 ? 'Level 2 — Personalized' : 'Level 1 — Generic'}</Chip>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper px-4 py-3">
+                    <span className="text-sm font-semibold text-ink">Jugnu speaks</span>
+                    <Chip tone="neutral">{patient.voiceEnabled ? 'On' : 'Off'}</Chip>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-paper px-4 py-3">
+                    <span className="text-sm font-semibold text-ink">Speaking speed</span>
+                    <Chip tone="neutral">{Math.round(patient.speechRate * 100)}% of normal</Chip>
+                  </div>
+                  <PermissionNote>
+                    Only {state.users.find((u) => u.layer === 1)?.name ?? 'the primary caregiver'} can change these —
+                    you can see how {patientName}’s activities are tuned.
+                  </PermissionNote>
+                </div>
+              )}
             </SectionCard>
           </div>
         )}
@@ -491,6 +478,54 @@ export function SettingsScreen() {
             </SectionCard>
           </div>
         )}
+
+        <SectionCard eyebrow="Viewing" title="Viewing Jugnu as">
+          <div className="grid gap-2">
+            {state.users.map((other) => {
+              const active = other.id === currentUser?.id
+              return (
+                <button
+                  key={other.id}
+                  type="button"
+                  onClick={() => {
+                    if (active) return
+                    api.switchUser(other.id)
+                    navigate(other.layer === 3 ? '/family' : other.relationship === 'Health Worker' || (other.layer === 2 && other.relationship !== 'Trusted helper' && other.relationship !== 'Day helper') ? '/healthworker' : '/')
+                  }}
+                  aria-current={active}
+                  className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition duration-200 ease-calm ${
+                    active ? 'border-glow-300 bg-glow-50' : 'border-line bg-paper hover:border-glow-200'
+                  }`}
+                >
+                  <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-line">
+                    <Portrait name={other.name} tone={other.portraitTone} compact />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-ink">{other.name}</span>
+                    <span className="block truncate text-xs text-ink-soft">
+                      {other.relationship} · {layerLabel[other.layer]}
+                    </span>
+                  </span>
+                  {active && <span className="chip shrink-0 bg-glow-100 text-glow-700">Viewing</span>}
+                </button>
+              )
+            })}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          eyebrow="Session"
+          title="Log out of Jugnu"
+          action={
+            <Button variant="primary" icon="logout" onClick={() => setConfirmSignOut(true)}>
+              Log out
+            </Button>
+          }
+        >
+          <p className="text-sm text-ink-soft">
+            Returns to the sign-in screen. Your PIN is still needed to come back; nothing on {patientName}’s side changes.
+          </p>
+        </SectionCard>
       </div>
 
       {canChange && dirty && (
@@ -538,6 +573,34 @@ export function SettingsScreen() {
           }}
         />
         {confirmError && <p className="mt-2 text-sm text-clay-700">{confirmError}</p>}
+      </Modal>
+
+      {/* Log out can't be undone, so the button always asks first. */}
+      <Modal
+        open={confirmSignOut}
+        onClose={() => setConfirmSignOut(false)}
+        size="sm"
+        title="Log out of Jugnu?"
+        description="You'll be signed out of this profile on this device."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmSignOut(false)}>
+              Stay signed in
+            </Button>
+            <Button
+              variant="primary"
+              icon="logout"
+              onClick={() => {
+                setConfirmSignOut(false)
+                dispatch({ type: 'signOut' })
+              }}
+            >
+              Log out
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-ink-soft">Your PIN is still needed to come back, and nothing on {patientName}’s side changes.</p>
       </Modal>
 
       {/* Level 2 needs usable memories of both kinds before it can unlock. */}

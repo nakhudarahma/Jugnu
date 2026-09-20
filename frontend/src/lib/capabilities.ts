@@ -28,7 +28,11 @@ export interface Capabilities {
   inviteFamily: boolean
   editPatientProfile: boolean
   editPatientIdentity: boolean
+  /** Read-only visibility of the patient profile for helpers; only their own word for the patient is editable. */
+  viewPatientProfile: boolean
   editPersonalization: boolean
+  /** Trusted helpers can see how the patient's activities are tuned without changing them. */
+  viewPersonalization: boolean
   editSecurity: boolean
   contributeOnly: boolean
 }
@@ -48,9 +52,10 @@ const NONE: Capabilities = {
   manageAssignedReminders: false,
   manageFamily: false,
   inviteFamily: false,
-  editPatientProfile: false,
+editPatientProfile: false,
   editPatientIdentity: false,
-  editPersonalization: false,
+  viewPatientProfile: false,
+  viewPersonalization: false,
   editSecurity: false,
   contributeOnly: false,
 }
@@ -72,7 +77,9 @@ const FULL: Capabilities = {
   inviteFamily: true,
   editPatientProfile: true,
   editPatientIdentity: true,
+  viewPatientProfile: true,
   editPersonalization: true,
+  viewPersonalization: true,
   editSecurity: true,
   contributeOnly: false,
 }
@@ -113,7 +120,9 @@ export function capabilitiesFor(user: AppUser | null | undefined): Capabilities 
       inviteFamily: true,
       editPatientProfile: true,
       editPatientIdentity: true,
+      viewPatientProfile: true,
       editPersonalization: true,
+      viewPersonalization: true,
       editSecurity: true,
     }
   }
@@ -130,8 +139,11 @@ export function capabilitiesFor(user: AppUser | null | undefined): Capabilities 
       createMemory: true,
       editAnyMemory: false,
       viewReminders: true,
+      manageAllReminders: true,
       manageAssignedReminders: true,
       manageFamily: false,
+      viewPersonalization: true,
+      viewPatientProfile: true,
     }
   }
 

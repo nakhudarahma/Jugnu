@@ -123,7 +123,7 @@ export function SignInScreen() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] bg-cream">
+    <div className="app-surface flex min-h-[100dvh]">
 
       {/* ─── Left panel ─── */}
       <div className="hidden lg:flex lg:w-[46%] xl:w-[48%] relative overflow-hidden bg-sand/35 items-center justify-center">
@@ -200,7 +200,7 @@ export function SignInScreen() {
           </button>
 
           {error && (
-            <p className="mt-2 text-center text-[0.8rem] text-[#b3352e]" role="alert">
+            <p className="mt-2 text-center text-[0.8rem] text-danger" role="alert">
               {error}
             </p>
           )}
@@ -216,7 +216,7 @@ export function SignInScreen() {
             type="button"
             onClick={() => setPickingDemo(true)}
             disabled={connecting}
-            className="flex w-full items-center justify-center gap-2 rounded-pill border border-[#df862f] bg-[#df862f] px-5 py-2.5 text-[0.85rem] font-medium text-white shadow-sm transition duration-200 ease-calm hover:bg-[#cd7624] hover:border-[#cd7624] active:scale-[0.99] disabled:opacity-55"
+            className="flex w-full items-center justify-center gap-2 rounded-pill border border-[#17a698] bg-[#17a698] px-5 py-2.5 text-[0.85rem] font-medium text-white shadow-sm transition duration-200 ease-calm hover:bg-[#0c8a7d] hover:border-[#0c8a7d] active:scale-[0.99] disabled:opacity-55"
           >
             <Icon name="sparkle" size={15} className="shrink-0 text-white" />
             <span>Try demo account</span>

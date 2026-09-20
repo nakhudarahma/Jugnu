@@ -2,44 +2,40 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '@/components/caregiver/Page'
 import { CompleteProfilePrompt } from '@/components/caregiver/CompleteProfilePrompt'
-import { Button, IconButton } from '@/components/ui/Button'
+import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { Modal } from '@/components/ui/Modal'
 import { Field, Select, TextInput } from '@/components/ui/Form'
 import { Portrait } from '@/components/ui/Portrait'
 import type { FacilityResident, ResidentStatus } from '@/data/facility'
-import { addResident, attendance7, getFacilityName, getResidents, getWorkerName, loadMoods, priorityRoster, saveMoods, signalFor, statusFor, statusLabel, weeklyCompletion } from '@/data/facility'
+import { addResident, attendance7, getFacilityName, getResidents, getWorkerName, loadMoods, saveMoods, signalFor, statusFor, statusLabel, weeklyCompletion } from '@/data/facility'
 import { languageLabel } from '@/lib/i18n'
 import { relativeDayLabel, today, weekDates } from '@/lib/date'
 import { allTrends, directionGlyph, domainLabel } from '@/lib/trends'
 import type { LanguageCode, MoodValue, TrendDirection } from '@/types'
 import { useApp } from '@/state/AppContext'
 
-type Filter = 'all' | ResidentStatus
-
 const moodFace: Record<MoodValue, string> = { good: '😊', ok: '😐', low: '😞' }
 
 /**
- * Health Worker Mode — Centralized Care. The whole facility on one calm screen:
- * who needs attention first, search, filter, and a tap through to the patient.
- * No maps, no routes, no clinical scores — just urgency, in the patient's favour.
+ * Health Worker Mode — Centralized Care. The day at a glance: who needs
+ * attention first, facility momentum, and the worker's own week. Patient
+ * records and add-patient live on the Patients tab.
  */
 export function HealthWorkerScreen() {
   const navigate = useNavigate()
   const { currentUser } = useApp()
-  const [filter, setFilter] = useState<Filter>('all')
-  const [query, setQuery] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
-  const [refresh, setRefresh] = useState(0)
   const [moodOpen, setMoodOpen] = useState(false)
   const [moodDone, setMoodDone] = useState(false)
   const [moods, setMoods] = useState<Record<string, MoodValue>>(loadMoods)
 
-  const roster = useMemo(() => getResidents(), [refresh])
+  const roster = useMemo(() => getResidents(), [])
+
+  const missedSessions = roster.filter((r) => r.missedSessions >= 1)
 
   const [submittedMood, setSubmittedMood] = useState<MoodValue | null>(null)
 
-  // One gentle check-in per day, before the roster. Purely local to this device.
+  // One gentle check-in per day, before the day's work. Purely local to this device.
   useEffect(() => {
     if (moodDone) return
     if (moods[today()]) {
@@ -55,15 +51,6 @@ export function HealthWorkerScreen() {
     saveMoods(next)
     setSubmittedMood(mood)
   }
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return priorityRoster(roster).filter(
-      (r) =>
-        (filter === 'all' || statusFor(r) === filter) &&
-        (!q || `${r.name} ${r.ward} ${r.room}`.toLowerCase().includes(q)),
-    )
-  }, [filter, query, roster])
 
   const counts = useMemo(
     () => ({
@@ -90,20 +77,11 @@ export function HealthWorkerScreen() {
               </h1>
             </div>
           </div>
-          <IconButton
-            icon="user"
-            label="Health worker settings"
-            onClick={() => navigate('/healthworker/settings')}
-            className="shrink-0"
-          />
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-relaxed text-ink-soft">
-            {greeting}{getWorkerName() ? `, ${getWorkerName()}.` : '.'} Patients who may need your attention today.
+            {greeting}{getWorkerName() ? `, ${getWorkerName()}.` : '.'} Here’s how the day is shaping up — patient records live under Patients.
           </p>
-          <Button variant="primary" icon="plus" className="px-3.5 py-2.5 text-xs" onClick={() => setAddOpen(true)}>
-            Add patient
-          </Button>
         </div>
       </header>
 
@@ -121,63 +99,11 @@ export function HealthWorkerScreen() {
         {/* The worker's own week — a quiet record of how the days have felt. */}
         <MoodWeek moods={moods} onOpenCheckIn={() => { setSubmittedMood(null); setMoodOpen(true) }} />
 
-        {/* Search + status filters */}
-        <div className="space-y-2.5">
-          <label className="relative block">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint">
-              <MagnifierIcon />
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search patient…"
-              className="input pl-11"
-              aria-label="Search patients"
-            />
-          </label>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
-            <FilterPill active={filter === 'all'} onClick={() => setFilter('all')}>
-              All
-            </FilterPill>
-            <FilterPill active={filter === 'red'} onClick={() => setFilter('red')}>
-              Needs Attention
-            </FilterPill>
-            <FilterPill active={filter === 'amber'} onClick={() => setFilter('amber')}>
-              Review Suggested
-            </FilterPill>
-            <FilterPill active={filter === 'green'} onClick={() => setFilter('green')}>
-              Stable
-            </FilterPill>
-          </div>
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-faint">
-            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-clay-500" aria-hidden="true" /> Needs attention</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-glow-500" aria-hidden="true" /> Review suggested</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sage-500" aria-hidden="true" /> Stable</span>
-          </p>
-        </div>
-
-        {/* Roster */}
-        {filtered.length === 0 ? (
-          <div className="card card-pad text-center text-sm text-ink-soft">No patients match this filter.</div>
-        ) : (
-          <div className="space-y-3 pb-2">
-            {filtered.map((resident) => (
-              <ResidentCard key={resident.id} resident={resident} onClick={() => navigate(`/healthworker/${resident.id}`)} />
-            ))}
-          </div>
+        {/* Anyone who has fallen behind this period, kept low so the day leads with calm. */}
+        {missedSessions.length > 0 && (
+          <MissedSessionsCard residents={missedSessions} onOpen={(id) => navigate(`/healthworker/${id}`)} />
         )}
       </div>
-
-      <AddPatientModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdded={(resident) => {
-          setAddOpen(false)
-          setRefresh((v) => v + 1)
-          navigate(`/healthworker/${resident.id}`)
-        }}
-      />
 
       {/* One-time nudge after the very first sign-in of this account. */}
       <CompleteProfilePrompt
@@ -247,7 +173,7 @@ interface NewResidentDraft {
   photoUrl?: string
 }
 
-function AddPatientModal({
+export function AddPatientModal({
   open,
   onClose,
   onAdded,
@@ -397,6 +323,15 @@ const toneStyle: Record<
   { chip: string; dot: string; bar: string; glyph: string; count: string; hint: string; wash: string }
 > = {
   red: {
+    chip: 'bg-amber-100 text-amber-700',
+    dot: 'bg-amber-500',
+    bar: 'bg-amber-500',
+    glyph: 'text-amber-600',
+    count: 'text-amber-700',
+    hint: 'text-amber-800',
+    wash: 'bg-amber-50/50',
+  },
+  amber: {
     chip: 'bg-clay-100 text-clay-700',
     dot: 'bg-clay-500',
     bar: 'bg-clay-500',
@@ -404,15 +339,6 @@ const toneStyle: Record<
     count: 'text-clay-700',
     hint: 'text-clay-800',
     wash: 'bg-clay-50/50',
-  },
-  amber: {
-    chip: 'bg-glow-100 text-glow-700',
-    dot: 'bg-glow-500',
-    bar: 'bg-glow-500',
-    glyph: 'text-glow-700',
-    count: 'text-glow-700',
-    hint: 'text-glow-800',
-    wash: 'bg-glow-50/50',
   },
   green: {
     chip: 'bg-sage-100 text-sage-700',
@@ -432,6 +358,49 @@ function SummaryCard({ tone, label, count, hint }: { tone: ResidentStatus; label
       <p className={`text-3xl font-display ${t.count}`}>{count}</p>
       <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{label}</p>
       <p className="mt-1.5 text-[10px] leading-relaxed text-ink-faint">{hint}</p>
+    </div>
+  )
+}
+
+
+
+
+
+function MissedSessionsCard({ residents, onOpen }: { residents: FacilityResident[]; onOpen: (id: string) => void }) {
+  return (
+    <div className="card card-pad">
+      <p className="label-eyebrow mb-0">Missed sessions</p>
+      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+        {residents.length === 1 ? '1 person has' : `${residents.length} people have`} fallen behind this period.
+      </p>
+      <div className="mt-3 divide-y divide-line/70">
+        {residents.map((r) => {
+          const status = statusFor(r)
+          const t = toneStyle[status]
+          return (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onOpen(r.id)}
+              className="flex w-full items-center gap-3 py-3 text-left transition duration-200 ease-calm hover:bg-sand/40"
+            >
+              <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-line">
+                <Portrait name={r.name} tone={r.portraitTone} photoUrl={r.photoUrl} compact />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-ink">{r.name}</p>
+                <p className="text-xs text-ink-faint">
+                  Last session: {relativeDayLabel(r.lastSessionDate)} · {r.lastSessionTime}
+                </p>
+              </div>
+              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[11px] font-semibold ${t.chip}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} aria-hidden="true" />
+                {r.missedSessions} missed
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -552,7 +521,7 @@ function MoodWeek({ moods, onOpenCheckIn }: { moods: Record<string, MoodValue>; 
   )
 }
 
-function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+export function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -585,7 +554,7 @@ function TrendGlyphs({ resident }: { resident: FacilityResident }) {
   )
 }
 
-function ResidentCard({ resident, onClick }: { resident: FacilityResident; onClick: () => void }) {
+export function ResidentCard({ resident, onClick }: { resident: FacilityResident; onClick: () => void }) {
   const status = statusFor(resident)
   const t = toneStyle[status]
   const attended = attendance7(resident)
@@ -647,7 +616,7 @@ function ResidentCard({ resident, onClick }: { resident: FacilityResident; onCli
   )
 }
 
-function MagnifierIcon() {
+export function MagnifierIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="11" cy="11" r="7" />

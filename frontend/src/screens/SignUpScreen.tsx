@@ -166,7 +166,7 @@ export function SignUpScreen() {
   const enterWorkerMode = () => registerWithMode('HEALTH_WORKER')
 
   return (
-    <div className="flex min-h-[100dvh] bg-cream">
+    <div className="app-surface flex min-h-[100dvh]">
 
       {/* ─── Left panel ─── */}
       <div className="hidden lg:flex lg:w-[46%] xl:w-[48%] relative overflow-hidden bg-sand/35 items-center justify-center">
@@ -243,7 +243,7 @@ export function SignUpScreen() {
           </button>
 
           {error && (
-            <p className="mt-2 text-center text-[0.8rem] text-[#b3352e]" role="alert">
+            <p className="mt-2 text-center text-[0.8rem] text-danger" role="alert">
               {error}
             </p>
           )}

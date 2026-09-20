@@ -31,7 +31,7 @@ const emptyDraft: Draft = { title: '', time: '09:00', repeat: 'daily', priority:
 
 /**
  * The routine, in one list. A trusted helper sees only what she has been asked to do
- * and can tick it off; adding, editing and removing stay with the primary caregiver.
+ * and can tick it off, but she can also add reminders to help keep the day on track.
  */
 export function RemindersScreen() {
   const { state, dispatch, currentUser, can, api, backendAvailable } = useApp()
@@ -98,11 +98,11 @@ export function RemindersScreen() {
                     dispatch({ type: 'toggleReminder', id: reminder.id })
                     if (backendAvailable) api.toggleReminder(reminder.id, !reminder.completed)
                   }}
-                  className={`mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 transition duration-200 ease-calm ${
+                  className={`mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 transition duration-200 ease-calm ${
                     reminder.completed ? 'border-sage-500 bg-sage-500 text-white' : 'border-line bg-paper text-transparent hover:border-glow-400'
                   }`}
                 >
-                  <Icon name="check" size={20} />
+                  <Icon name="check" size={15} />
                 </button>
 
                 <div className="min-w-0 flex-1">
@@ -155,7 +155,7 @@ export function RemindersScreen() {
           />
         )}
 
-        {helper && <PermissionNote>You can tick off the reminders assigned to you. Changing the routine stays with the primary caregiver.</PermissionNote>}
+        {helper && <PermissionNote>You can tick off reminders and add, edit or remove them. Account-level changes stay with the primary caregiver.</PermissionNote>}
       </div>
 
       <Modal
