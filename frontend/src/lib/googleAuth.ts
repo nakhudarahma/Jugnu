@@ -13,7 +13,7 @@ declare global {
 
 export const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '346769116770-8sbq3hjq50ubsjkp5vt3apf0l6mejhbj.apps.googleusercontent.com'
+  '450102728922-9grspilpf58c41dsuk162bh9edu7die5.apps.googleusercontent.com'
 
 export type GoogleAuthFailure = 'unavailable' | 'cancelled' | 'failed' | 'network'
 
