@@ -14,6 +14,8 @@ import { SessionScreen } from '@/screens/SessionScreen'
 import { SettingsScreen } from '@/screens/SettingsScreen'
 import { SignInScreen } from '@/screens/SignInScreen'
 import { SignUpScreen } from '@/screens/SignUpScreen'
+import { PrivacyScreen } from '@/screens/PrivacyScreen'
+import { TermsScreen } from '@/screens/TermsScreen'
 import { TrendsScreen } from '@/screens/TrendsScreen'
 import { useApp } from '@/state/AppContext'
 
@@ -51,6 +53,8 @@ export function App() {
         <Routes>
           <Route path="/login" element={<SignInScreen />} />
           <Route path="/signup" element={<SignUpScreen />} />
+          <Route path="/privacy" element={<PrivacyScreen />} />
+          <Route path="/terms" element={<TermsScreen />} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
@@ -133,6 +137,8 @@ export function App() {
         {/* Redirect auth pages and any unknown URL to home, which then re-routes by role */}
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/signup" element={<Navigate to="/" replace />} />
+        <Route path="/privacy" element={<PrivacyScreen />} />
+        <Route path="/terms" element={<TermsScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
